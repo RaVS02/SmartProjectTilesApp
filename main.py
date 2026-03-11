@@ -2,121 +2,721 @@ import customtkinter as ctk
 import settings as st
 from models import TileManager, ProjectTileModel
 from ui import ProjectTileWidget, TileFormDialog
+import math
+import tkinter as tk
+import uuid
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("green")
 
+GRID_SIZE = 20
 
-import math # <--- Upewnij się, że masz to zaimportowane na górze pliku main.py
 
-import math
-import tkinter as tk  # Potrzebne do Canvasu
+def snap(val):
+    return round(val / GRID_SIZE) * GRID_SIZE
+
+
+def get_round_rect_points(x1, y1, x2, y2, r=12):
+    return [
+        x1 + r, y1, x1 + r, y1, x2 - r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y1 + r,
+        x2, y2 - r, x2, y2 - r, x2, y2, x2 - r, y2, x2 - r, y2, x1 + r, y2, x1 + r, y2,
+        x1, y2, x1, y2 - r, x1, y2 - r, x1, y1 + r, x1, y1 + r, x1, y1
+    ]
+
+
+# ==========================================
+# OKIENKA EDYCJI (WŁAŚCIWOŚCI)
+# ==========================================
+class NodeEditDialog(ctk.CTkToplevel):
+    def __init__(self, master, node, on_save_callback, on_duplicate_callback, **kwargs):
+        super().__init__(master, **kwargs)
+        self.title("Właściwości Elementu")
+        self.geometry("400x650")  # Powiększono, aby zmieścić pole wieloliniowe
+        self.node = node
+        self.on_save_callback = on_save_callback
+        self.on_duplicate_callback = on_duplicate_callback
+
+        self.transient(master)
+        self.grab_set()
+
+        ctk.CTkLabel(self, text="Nagłówek (np. Typ):").pack(pady=(15, 0))
+        self.header_var = ctk.StringVar(value=node.header)
+        ctk.CTkEntry(self, textvariable=self.header_var, width=280).pack(pady=5)
+
+        # ZMIANA: Zmiana na TextBox wspierający wiele linii (Enter)
+        ctk.CTkLabel(self, text="Tekst główny (obsługuje wiele linii):").pack(pady=(10, 0))
+        self.text_box = ctk.CTkTextbox(self, width=280, height=80)
+        self.text_box.pack(pady=5)
+        self.text_box.insert("0.0", node.text)
+
+        ctk.CTkLabel(self, text="Kształt bloku:").pack(pady=(10, 0))
+        # ZMIANA: Dodano Równoległobok do listy kształtów
+        self.shapes = {
+            "Prostokąt zaokrąglony": "rect",
+            "Romb (Decyzja)": "diamond",
+            "Elipsa (Start/Koniec)": "oval",
+            "Równoległobok (We/Wy)": "parallelogram"
+        }
+        current_shape = "Prostokąt zaokrąglony"
+        for k, v in self.shapes.items():
+            if v == node.shape: current_shape = k
+        self.shape_var = ctk.StringVar(value=current_shape)
+        ctk.CTkOptionMenu(self, values=list(self.shapes.keys()), variable=self.shape_var).pack(pady=5)
+
+        ctk.CTkLabel(self, text="Kolor kafelka:").pack(pady=(10, 0))
+        self.colors = {
+            "Domyślny Ciemny": None, "Czerwony (Krytyczny)": "#8b0000",
+            "Zielony (Sukces)": "#1b4d30", "Pomarańczowy (Uwaga)": "#b35900",
+            "Fioletowy (Zewnętrzny)": "#3c1361", "Żółty (Komentarz)": "#b38f00", "Biały": "#ffffff"
+        }
+        current_color = "Domyślny Ciemny"
+        for k, v in self.colors.items():
+            if v == node.color: current_color = k
+        self.color_var = ctk.StringVar(value=current_color)
+        ctk.CTkOptionMenu(self, values=list(self.colors.keys()), variable=self.color_var).pack(pady=5)
+
+        dim_frame = ctk.CTkFrame(self, fg_color="transparent")
+        dim_frame.pack(pady=10)
+        ctk.CTkLabel(dim_frame, text="Szerokość:").grid(row=0, column=0, padx=5)
+        self.width_var = ctk.StringVar(value=str(int(node.width)))
+        ctk.CTkEntry(dim_frame, textvariable=self.width_var, width=60, justify="center").grid(row=0, column=1, padx=5)
+        ctk.CTkLabel(dim_frame, text="Wysokość:").grid(row=0, column=2, padx=5)
+        self.height_var = ctk.StringVar(value=str(int(node.height)))
+        ctk.CTkEntry(dim_frame, textvariable=self.height_var, width=60, justify="center").grid(row=0, column=3, padx=5)
+
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        ctk.CTkButton(btn_frame, text="Zapisz", command=self.save_data, width=100).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="📑 Kopiuj", fg_color="#b8860b", hover_color="#8a6508",
+                      command=self.duplicate_data, width=100).pack(side="left", padx=5)
+
+    def save_data(self):
+        new_text = self.text_box.get("0.0", "end").strip()  # Pobranie tekstu z TextBoxa
+        new_header = self.header_var.get()
+        new_shape = self.shapes.get(self.shape_var.get())
+        new_color = self.colors.get(self.color_var.get())
+        try:
+            new_w = snap(int(self.width_var.get()))
+            new_h = snap(int(self.height_var.get()))
+        except ValueError:
+            new_w, new_h = self.node.width, self.node.height
+
+        self.on_save_callback(self.node, new_text, new_header, new_shape, new_color, new_w, new_h)
+        self.destroy()
+
+    def duplicate_data(self):
+        self.on_duplicate_callback(self.node)
+        self.destroy()
+
+
+class EdgeEditDialog(ctk.CTkToplevel):
+    def __init__(self, master, edge, on_save_callback, **kwargs):
+        super().__init__(master, **kwargs)
+        self.title("Właściwości Linii")
+        self.geometry("300x350")
+        self.edge = edge
+        self.on_save_callback = on_save_callback
+
+        self.transient(master)
+        self.grab_set()
+
+        ctk.CTkLabel(self, text="Typ strzałki:").pack(pady=(15, 5))
+        self.directions = {
+            "A ➔ B (Domyślny)": "last", "A ⬅ B (Odwrotny)": "first",
+            "A ⬌ B (Dwukierunkowy)": "both", "Linia zwykła (Brak)": "none"
+        }
+        current_dir = "A ➔ B (Domyślny)"
+        for k, v in self.directions.items():
+            if v == edge.direction: current_dir = k
+        self.dir_var = ctk.StringVar(value=current_dir)
+        ctk.CTkOptionMenu(self, values=list(self.directions.keys()), variable=self.dir_var).pack(pady=5)
+
+        ctk.CTkLabel(self, text="Kolor Linii:").pack(pady=(15, 5))
+        self.edge_colors = {
+            "Szary (Domyślny)": "#888888", "Czerwony (Błąd/Nie)": "#ff4a4a",
+            "Zielony (Sukces/Tak)": "#00cc00", "Niebieski (Informacja)": "#2980b9"
+        }
+        current_ecolor = "Szary (Domyślny)"
+        for k, v in self.edge_colors.items():
+            if v == edge.color: current_ecolor = k
+        self.color_var = ctk.StringVar(value=current_ecolor)
+        ctk.CTkOptionMenu(self, values=list(self.edge_colors.keys()), variable=self.color_var).pack(pady=5)
+
+        self.dashed_var = ctk.BooleanVar(value=edge.dashed)
+        ctk.CTkCheckBox(self, text="Linia Przerywana", variable=self.dashed_var).pack(pady=15)
+
+        ctk.CTkButton(self, text="Zapisz", command=self.save_data).pack(pady=20)
+
+    def save_data(self):
+        new_dir = self.directions.get(self.dir_var.get())
+        new_color = self.edge_colors.get(self.color_var.get())
+        new_dashed = self.dashed_var.get()
+        self.on_save_callback(self.edge, new_dir, new_color, new_dashed)
+        self.destroy()
+
+
+# ==========================================
+# KLASY PŁÓTNA (CANVAS)
+# ==========================================
+class CanvasNode:
+    def __init__(self, wf, x, y, text, node_type="block", node_id=None, color=None, width=160, height=80, shape="rect",
+                 header=""):
+        self.wf = wf
+        self.canvas = wf.canvas
+        self.id = node_id if node_id else str(uuid.uuid4())
+
+        self.width = snap(width)
+        self.height = snap(height)
+        self.x = snap(x)
+        self.y = snap(y)
+
+        self.text = text
+        self.header = header
+        self.shape = shape
+        self.node_type = node_type
+        self.color = color
+        self.selected = False
+
+        self.bg_id = None
+        self.text_id = None
+        self.header_id = None
+        self.handle_id = None
+        self.draw()
+
+    def draw(self):
+        if self.bg_id: self.canvas.delete(self.bg_id)
+        if self.text_id: self.canvas.delete(self.text_id)
+        if self.header_id: self.canvas.delete(self.header_id)
+        if self.handle_id: self.canvas.delete(self.handle_id)
+
+        z = self.wf.zoom
+        sx, sy = self.x * z, self.y * z
+        sw, sh = self.width * z, self.height * z
+
+        x1, y1 = sx - sw / 2, sy - sh / 2
+        x2, y2 = sx + sw / 2, sy + sh / 2
+
+        # LOGIKA KSZTAŁTÓW
+        if self.shape == "oval":
+            self.bg_id = self.canvas.create_oval(x1, y1, x2, y2, width=max(1, int(2 * z)), tags=("node", self.id))
+        elif self.shape == "diamond":
+            pts = [sx, y1, x2, sy, sx, y2, x1, sy]
+            self.bg_id = self.canvas.create_polygon(pts, width=max(1, int(2 * z)), tags=("node", self.id))
+        elif self.shape == "parallelogram":  # ZMIANA: Rysowanie Równoległoboku (Wejście/Wyjście)
+            offset = sw * 0.15  # Przesunięcie ścian bocznych
+            pts = [x1 + offset, y1, x2, y1, x2 - offset, y2, x1, y2]
+            self.bg_id = self.canvas.create_polygon(pts, width=max(1, int(2 * z)), tags=("node", self.id))
+        else:
+            pts = get_round_rect_points(x1, y1, x2, y2, r=12 * z)
+            self.bg_id = self.canvas.create_polygon(pts, smooth=True, width=max(1, int(2 * z)), tags=("node", self.id))
+
+        text_color = "black" if self.color == "#ffffff" else "#DCE4EE"
+        header_color = "gray" if self.color == "#ffffff" else "#999999"
+
+        font_size = max(6, int(11 * z))
+        header_font_size = max(5, int(9 * z))
+
+        self.header_id = self.canvas.create_text(
+            sx, sy - sh / 2 + 10 * z, text=self.header, fill=header_color, font=("Helvetica", header_font_size),
+            width=sw - 20 * z, justify="center", tags=("node", self.id)
+        )
+        self.text_id = self.canvas.create_text(
+            sx, sy + (10 * z if self.header else 0), text=self.text, fill=text_color,
+            font=("Helvetica", font_size, "bold"),
+            width=sw - 20 * z, justify="center", tags=("node", self.id)
+        )
+
+        self.handle_id = self.canvas.create_rectangle(
+            x2 - 12 * z, y2 - 12 * z, x2, y2, fill="white", outline="#333", tags=("handle", self.id), state="hidden"
+        )
+
+        self.update_visuals()
+
+    def move_to(self, x, y):
+        self.x = x
+        self.y = y
+        self.draw()
+
+    def resize(self, w, h):
+        self.width = max(80, w)
+        self.height = max(50, h)
+        self.draw()
+
+    def set_selected(self, state):
+        self.selected = state
+        if self.handle_id:
+            self.canvas.itemconfig(self.handle_id, state="normal" if state else "hidden")
+        self.update_visuals()
+
+    def update_visuals(self):
+        bg = self.color if self.color else ("#b35900" if self.node_type == "note" else "#2b2b2b")
+        outline = "#ffcc00" if self.selected else ("#e67300" if self.node_type == "note" else "#666666")
+        if self.bg_id:
+            self.canvas.itemconfig(self.bg_id, fill=bg, outline=outline)
+
+    def update_properties(self, text, header, shape, color, width, height):
+        self.text = text
+        self.header = header
+        self.shape = shape
+        self.color = color
+        self.width = width
+        self.height = height
+        self.draw()
+
+    def destroy(self):
+        self.canvas.delete(self.bg_id)
+        self.canvas.delete(self.text_id)
+        self.canvas.delete(self.header_id)
+        self.canvas.delete(self.handle_id)
+
+    def to_dict(self):
+        return {
+            "id": self.id, "x": self.x, "y": self.y, "text": self.text, "header": self.header,
+            "type": self.node_type, "shape": self.shape, "color": self.color, "width": self.width, "height": self.height
+        }
+
+
+class CanvasEdge:
+    def __init__(self, wf, source_node, target_node, edge_id=None, direction="last", color="#888888", dashed=False):
+        self.wf = wf
+        self.canvas = wf.canvas
+        self.id = edge_id if edge_id else str(uuid.uuid4())
+        self.source = source_node
+        self.target = target_node
+        self.direction = direction
+        self.color = color
+        self.dashed = dashed
+
+        self.arrow_map = {"last": tk.LAST, "first": tk.FIRST, "both": tk.BOTH, "none": tk.NONE}
+        self.line_id = None
+        self.draw()
+
+    def get_edge_point(self, node, target_x, target_y):
+        dx = target_x - node.x
+        dy = target_y - node.y
+        if dx == 0 and dy == 0: return node.x, node.y
+
+        hw, hh = node.width / 2 + 4, node.height / 2 + 4
+        if node.shape == "diamond":
+            hw -= 10
+            hh -= 10
+
+        if dx == 0: return node.x, node.y + (hh if dy > 0 else -hh)
+        if dy == 0: return node.x + (hw if dx > 0 else -hw), node.y
+
+        slope = dy / dx
+        x_edge = hw if dx > 0 else -hw
+        y_edge = x_edge * slope
+
+        if abs(y_edge) <= hh:
+            return node.x + x_edge, node.y + y_edge
+
+        y_edge = hh if dy > 0 else -hh
+        x_edge = y_edge / slope
+        return node.x + x_edge, node.y + y_edge
+
+    def draw(self):
+        if self.line_id: self.canvas.delete(self.line_id)
+
+        z = self.wf.zoom
+        dash_pattern = (int(5 * z), int(5 * z)) if self.dashed else None
+        aw, ah1, ah2 = max(8, int(20 * z)), max(10, int(24 * z)), max(4, int(8 * z))
+
+        self.line_id = self.canvas.create_line(
+            0, 0, 0, 0, 0, 0, 0, 0,
+            arrow=self.arrow_map.get(self.direction, tk.LAST),
+            arrowshape=(aw, ah1, ah2), width=max(1, int(3 * z)), fill=self.color,
+            joinstyle=tk.MITER, dash=dash_pattern, tags=("edge", self.id)
+        )
+        self.canvas.tag_lower(self.line_id)
+        self.update_position()
+
+    def update_position(self):
+        z = self.wf.zoom
+        x1, y1 = self.get_edge_point(self.source, self.target.x, self.target.y)
+        x4, y4 = self.get_edge_point(self.target, self.source.x, self.source.y)
+        mid_x = snap((x1 + x4) / 2)
+
+        self.canvas.coords(self.line_id, x1 * z, y1 * z, mid_x * z, y1 * z, mid_x * z, y4 * z, x4 * z, y4 * z)
+        self.canvas.tag_lower(self.line_id)
+        self.canvas.tag_raise(self.line_id, "grid")
+
+    def update_properties(self, direction, color, dashed):
+        self.direction = direction
+        self.color = color
+        self.dashed = dashed
+        self.draw()
+
+    def destroy(self):
+        self.canvas.delete(self.line_id)
+
+    def to_dict(self):
+        return {"id": self.id, "source": self.source.id, "target": self.target.id, "direction": self.direction,
+                "color": self.color, "dashed": self.dashed}
 
 
 class WorkflowCanvasFrame(ctk.CTkFrame):
-    """Płótno z paskiem narzędzi bocznych do tworzenia diagramów"""
-
     def __init__(self, master, tile_model, close_callback, manager, **kwargs):
         super().__init__(master, **kwargs)
         self.model = tile_model
         self.close_callback = close_callback
         self.manager = manager
 
-        # Układ: 2 wiersze (header, canvas), 2 kolumny (toolbar, canvas)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(1, weight=1)  # Kolumna 1 (płótno) zabiera całe wolne miejsce
+        self.nodes = {}
+        self.edges = {}
+        self.zoom = 1.0
 
-        # ==========================================
-        # 1. PASEK GÓRNY (Header)
-        # ==========================================
+        self.dragged_node = None
+        self.resizing_node = None
+        self.edge_start_node = None
+        self.temp_line = None
+
+        self.pan_start_x = 0
+        self.pan_start_y = 0
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+        # PASEK GÓRNY
         header = ctk.CTkFrame(self, height=50, fg_color="transparent")
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
 
         ctk.CTkButton(header, text="< Wróć do listy", width=100, command=self.close_callback).pack(side="left",
                                                                                                    padx=(0, 20))
         ctk.CTkLabel(header, text=f"📍 Workflow: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
-
-        # Przyciski zarządzania płótnem
         ctk.CTkButton(header, text="💾 Zapisz", width=100, fg_color="green", hover_color="darkgreen",
                       command=self.save_workflow).pack(side="right", padx=(10, 0))
         ctk.CTkButton(header, text="🗑️ Wyczyść", width=100, fg_color="#8b0000", hover_color="#5c0000",
                       command=self.clear_canvas).pack(side="right")
 
-        # ==========================================
-        # 2. PASEK NARZĘDZI BOCZNY (Toolbar)
-        # ==========================================
+        # PASEK BOCZNY
         self.toolbar = ctk.CTkFrame(self, width=160)
         self.toolbar.grid(row=1, column=0, sticky="ns", padx=(20, 10), pady=(0, 20))
-
         ctk.CTkLabel(self.toolbar, text="Narzędzia", font=st.FONT_TITLE).pack(pady=(15, 20))
 
-        # Zmienna przechowująca aktualnie wybrany tryb narzędzia
         self.current_mode = tk.StringVar(value="move")
-
-        # Lista dostępnych narzędzi (Tekst na przycisku, wartość trybu)
         tools = [
-            ("🖱️ Przesuwaj / Edytuj", "move"),
+            ("🖱️ Przesuwaj", "move"),
+            ("✋ Przesuń Widok", "pan"),
             ("🔲 Dodaj Blok", "add_block"),
             ("📝 Dodaj Notatkę", "add_note"),
-            ("↗️ Połącz (Strzałka)", "add_edge"),
+            ("↗️ Połącz", "add_edge"),
             ("❌ Usuń element", "delete")
         ]
 
-        # Generowanie przycisków Radio (tylko jeden może być wciśnięty)
         for text, mode in tools:
             rb = ctk.CTkRadioButton(
-                self.toolbar,
-                text=text,
-                variable=self.current_mode,
-                value=mode,
-                font=("Helvetica", 13),
-                command=self.on_tool_changed
+                self.toolbar, text=text, variable=self.current_mode, value=mode,
+                font=("Helvetica", 13), command=self.on_tool_changed
             )
             rb.pack(anchor="w", padx=15, pady=12)
 
-        # ==========================================
-        # 3. OBSZAR PŁÓTNA (Canvas)
-        # ==========================================
+        # PANEL ZOOMU
+        zoom_frame = ctk.CTkFrame(self.toolbar, fg_color="transparent")
+        zoom_frame.pack(side="bottom", pady=(5, 10))
+        ctk.CTkButton(zoom_frame, text="-", width=30, command=self.zoom_out).pack(side="left", padx=2)
+        self.zoom_lbl = ctk.CTkLabel(zoom_frame, text="100%", font=("Helvetica", 12, "bold"), width=45)
+        self.zoom_lbl.pack(side="left", padx=2)
+        ctk.CTkButton(zoom_frame, text="+", width=30, command=self.zoom_in).pack(side="left", padx=2)
+
+        # ZMIANA: Przycisk resetowania widoku
+        ctk.CTkButton(self.toolbar, text="🏠 Zresetuj Widok", width=120, command=self.reset_view).pack(side="bottom",
+                                                                                                      pady=10)
+
+        # ZMIANA: Tracker współrzędnych
+        self.coord_lbl = ctk.CTkLabel(self.toolbar, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 10))
+        self.coord_lbl.pack(side="bottom", pady=5)
+
+        # PŁÓTNO
         self.canvas_container = ctk.CTkFrame(self)
         self.canvas_container.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=(0, 20))
 
-        # Używamy czystego tkinter Canvas, bo CustomTkinter nie ma natywnego rysowania linii
-        self.canvas = tk.Canvas(self.canvas_container, bg="#1a1a1a", highlightthickness=0)
+        self.canvas = tk.Canvas(self.canvas_container, bg="#1a1a1a", highlightthickness=0,
+                                scrollregion=(-10000, -10000, 10000, 10000))
         self.canvas.pack(fill="both", expand=True, padx=2, pady=2)
 
-        # PODPIĘCIE GŁÓWNYCH ZDARZEŃ MYSZY (Fundamenty pod kolejny krok)
-        self.canvas.bind("<Button-1>", self.on_canvas_click)
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+        self.canvas.bind("<ButtonPress-1>", self.on_press)
+        self.canvas.bind("<B1-Motion>", self.on_drag)
+        self.canvas.bind("<ButtonRelease-1>", self.on_release)
+        self.canvas.bind("<Double-Button-1>", self.on_double_click)
+        self.canvas.bind("<Motion>", self.on_mouse_move)  # ZMIANA: Tracker myszy
 
-    # --- FUNKCJE INTERFEJSU PŁÓTNA ---
+        self.canvas.bind("<ButtonPress-2>", self.start_pan)
+        self.canvas.bind("<B2-Motion>", self.do_pan)
+        self.canvas.bind("<ButtonPress-3>", self.start_pan)
+        self.canvas.bind("<B3-Motion>", self.do_pan)
+
+        self.after(50, self.initial_center)
+        self.after(100, self.load_workflow)
+
+    def zoom_in(self):
+        self.set_zoom(self.zoom * 1.25)
+
+    def zoom_out(self):
+        self.set_zoom(self.zoom / 1.25)
+
+    def set_zoom(self, value):
+        self.zoom = max(0.2, min(value, 3.0))
+        self.zoom_lbl.configure(text=f"{int(self.zoom * 100)}%")
+        for n in self.nodes.values(): n.draw()
+        for e in self.edges.values(): e.draw()
+        self.draw_grid()
+
+    def initial_center(self):
+        # Obliczenie idealnego wyśrodkowania (punkt 0,0) względem aktualnego rozmiaru okna
+        w = self.canvas.winfo_width()
+        h = self.canvas.winfo_height()
+        frac_x = (10000 - w / 2) / 20000 if w > 0 else 0.48
+        frac_y = (10000 - h / 2) / 20000 if h > 0 else 0.48
+        self.canvas.xview_moveto(frac_x)
+        self.canvas.yview_moveto(frac_y)
+
+    def reset_view(self):
+        """Ustawia Zoom na 100% i centruje do 0,0"""
+        self.set_zoom(1.0)
+        self.initial_center()
+
+    def on_canvas_configure(self, event):
+        self.draw_grid()
+
+    def start_pan(self, event):
+        self.canvas.config(cursor="fleur")
+        self.canvas.scan_mark(event.x, event.y)
+
+    def do_pan(self, event):
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
+        self.draw_grid()
+        self.on_tool_changed()
+
+    def on_mouse_move(self, event):
+        """Aktualizuje wskaźnik koordynatów na żywo"""
+        logical_x = int(self.canvas.canvasx(event.x) / self.zoom)
+        logical_y = int(self.canvas.canvasy(event.y) / self.zoom)
+        self.coord_lbl.configure(text=f"X: {logical_x} | Y: {logical_y}")
+
+    def draw_grid(self, event=None):
+        self.canvas.delete("grid")
+        step = int(GRID_SIZE * self.zoom)
+        if step < 5: return
+
+        x0 = int(self.canvas.canvasx(0))
+        y0 = int(self.canvas.canvasy(0))
+        x1 = int(self.canvas.canvasx(self.canvas.winfo_width()))
+        y1 = int(self.canvas.canvasy(self.canvas.winfo_height()))
+
+        start_x = x0 - (x0 % step)
+        start_y = y0 - (y0 % step)
+
+        for i in range(start_x, x1 + step, step):
+            self.canvas.create_line(i, y0, i, y1, fill="#252525", tags="grid")
+        for i in range(start_y, y1 + step, step):
+            self.canvas.create_line(x0, i, x1, i, fill="#252525", tags="grid")
+        self.canvas.tag_lower("grid")
+
     def on_tool_changed(self):
-        """Zmienia kursor myszy w zależności od narzędzia, żeby użytkownik wiedział w jakim jest trybie"""
         mode = self.current_mode.get()
         if mode == "add_edge":
-            self.canvas.configure(cursor="crosshair")  # Celownik
+            self.canvas.configure(cursor="crosshair")
         elif mode == "delete":
-            self.canvas.configure(cursor="pirate")  # Czaszka/krzyżyk (w zależności od systemu)
+            self.canvas.configure(cursor="pirate")
         elif mode in ["add_block", "add_note"]:
-            self.canvas.configure(cursor="plus")  # Plusik
+            self.canvas.configure(cursor="plus")
+        elif mode == "pan":
+            self.canvas.configure(cursor="hand2")
         else:
-            self.canvas.configure(cursor="arrow")  # Zwykły kursor
+            self.canvas.configure(cursor="arrow")
 
-    def on_canvas_click(self, event):
-        """Złapie kliknięcie na płótnie i sprawdzi, jakie narzędzie jest aktywne"""
+    def on_press(self, event):
         mode = self.current_mode.get()
-        print(f"DEBUG: Kliknięto w X:{event.x}, Y:{event.y} | Aktywny tryb: {mode}")
+        if mode == "pan":
+            self.start_pan(event)
+            return
 
-        # Tutaj w kolejnym kroku dodamy logikę tworzenia bloków!
+        logical_x = self.canvas.canvasx(event.x) / self.zoom
+        logical_y = self.canvas.canvasy(event.y) / self.zoom
+
+        item = self.canvas.find_withtag("current")
+
+        if mode in ["add_block", "add_note"]:
+            dialog = ctk.CTkInputDialog(text="Wpisz nazwę:", title="Nowy element")
+            text = dialog.get_input()
+            if text:
+                node_type = "block" if mode == "add_block" else "note"
+                new_node = CanvasNode(self, snap(logical_x), snap(logical_y), text, node_type)
+                self.nodes[new_node.id] = new_node
+
+        elif mode == "move":
+            clicked_node_id = None
+            clicked_handle_id = None
+            if item:
+                tags = self.canvas.gettags(item[0])
+                if "node" in tags and len(tags) > 1:
+                    clicked_node_id = tags[1]
+                elif "handle" in tags and len(tags) > 1:
+                    clicked_handle_id = tags[1]
+
+            for n in self.nodes.values():
+                n.set_selected(n.id == clicked_node_id or n.id == clicked_handle_id)
+
+            if clicked_handle_id:
+                self.resizing_node = self.nodes.get(clicked_handle_id)
+            elif clicked_node_id:
+                self.dragged_node = self.nodes.get(clicked_node_id)
+
+        elif mode == "add_edge" and item:
+            tags = self.canvas.gettags(item[0])
+            if "node" in tags and len(tags) > 1:
+                self.edge_start_node = self.nodes.get(tags[1])
+                if self.edge_start_node:
+                    self.temp_line = self.canvas.create_line(
+                        self.edge_start_node.x * self.zoom, self.edge_start_node.y * self.zoom,
+                        logical_x * self.zoom, logical_y * self.zoom,
+                        dash=(5, 5), fill="yellow", width=2
+                    )
+
+        elif mode == "delete" and item:
+            tags = self.canvas.gettags(item[0])
+            if "node" in tags and len(tags) > 1:
+                node_id = tags[1]
+                if node_id in self.nodes:
+                    self.nodes[node_id].destroy()
+                    del self.nodes[node_id]
+                    edges_to_delete = [e_id for e_id, e in self.edges.items() if
+                                       e.source.id == node_id or e.target.id == node_id]
+                    for e_id in edges_to_delete:
+                        self.edges[e_id].destroy()
+                        del self.edges[e_id]
+
+            elif "edge" in tags and len(tags) > 1:
+                edge_id = tags[1]
+                if edge_id in self.edges:
+                    self.edges[edge_id].destroy()
+                    del self.edges[edge_id]
+
+    def on_drag(self, event):
+        mode = self.current_mode.get()
+        if mode == "pan":
+            self.do_pan(event)
+            return
+
+        logical_x = self.canvas.canvasx(event.x) / self.zoom
+        logical_y = self.canvas.canvasy(event.y) / self.zoom
+
+        if mode == "move":
+            if self.resizing_node:
+                new_w = snap((logical_x - self.resizing_node.x) * 2)
+                new_h = snap((logical_y - self.resizing_node.y) * 2)
+                self.resizing_node.resize(new_w, new_h)
+                for edge in self.edges.values():
+                    if edge.source == self.resizing_node or edge.target == self.resizing_node:
+                        edge.update_position()
+
+            elif self.dragged_node:
+                self.dragged_node.move_to(snap(logical_x), snap(logical_y))
+                for edge in self.edges.values():
+                    if edge.source == self.dragged_node or edge.target == self.dragged_node:
+                        edge.update_position()
+
+        elif mode == "add_edge" and self.edge_start_node and self.temp_line:
+            self.canvas.coords(self.temp_line, self.edge_start_node.x * self.zoom, self.edge_start_node.y * self.zoom,
+                               logical_x * self.zoom, logical_y * self.zoom)
+
+    def on_release(self, event):
+        mode = self.current_mode.get()
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+
+        if mode == "add_edge" and self.edge_start_node:
+            items = self.canvas.find_overlapping(canvas_x - 2, canvas_y - 2, canvas_x + 2, canvas_y + 2)
+            target_node = None
+            for item in items:
+                tags = self.canvas.gettags(item)
+                if "node" in tags and len(tags) > 1:
+                    node_id = tags[1]
+                    target_node = self.nodes.get(node_id)
+                    if target_node and target_node != self.edge_start_node:
+                        break
+
+            if target_node and target_node != self.edge_start_node:
+                new_edge = CanvasEdge(self, self.edge_start_node, target_node)
+                self.edges[new_edge.id] = new_edge
+
+            if self.temp_line:
+                self.canvas.delete(self.temp_line)
+                self.temp_line = None
+            self.edge_start_node = None
+
+        self.dragged_node = None
+        self.resizing_node = None
+
+    def on_double_click(self, event):
+        item = self.canvas.find_withtag("current")
+        if not item: return
+
+        tags = self.canvas.gettags(item[0])
+        if "node" in tags and len(tags) > 1:
+            node = self.nodes.get(tags[1])
+            if node: NodeEditDialog(self, node, self.apply_node_edit, self.duplicate_node)
+        elif "edge" in tags and len(tags) > 1:
+            edge = self.edges.get(tags[1])
+            if edge: EdgeEditDialog(self, edge, self.apply_edge_edit)
+
+    def apply_node_edit(self, node, new_text, new_header, new_shape, new_color, new_width, new_height):
+        node.update_properties(new_text, new_header, new_shape, new_color, new_width, new_height)
+        for edge in self.edges.values():
+            if edge.source == node or edge.target == node: edge.update_position()
+        self.save_workflow()
+
+    def duplicate_node(self, node):
+        new_node = CanvasNode(
+            self, snap(node.x + 40), snap(node.y + 40), node.text, node.node_type,
+            color=node.color, width=node.width, height=node.height,
+            shape=node.shape, header=node.header
+        )
+        self.nodes[new_node.id] = new_node
+        self.save_workflow()
+
+    def apply_edge_edit(self, edge, new_direction, new_color, new_dashed):
+        edge.update_properties(new_direction, new_color, new_dashed)
+        self.save_workflow()
 
     def save_workflow(self):
-        """Zapisuje cały stan na dysk"""
-        # Tu w przyszłości dodamy pakowanie narysowanych elementów do self.model.workflow_data
+        self.model.workflow_data["nodes"] = [node.to_dict() for node in self.nodes.values()]
+        self.model.workflow_data["edges"] = [edge.to_dict() for edge in self.edges.values()]
         self.manager.save_to_file()
-        print("DEBUG: Zapisano zmiany workflow na dysku.")
+
+    def load_workflow(self):
+        saved_nodes = self.model.workflow_data.get("nodes", [])
+        for nd in saved_nodes:
+            node = CanvasNode(
+                self, x=nd["x"], y=nd["y"], text=nd["text"],
+                node_type=nd.get("type", "block"), node_id=nd["id"],
+                color=nd.get("color"), width=nd.get("width", 160), height=nd.get("height", 80),
+                shape=nd.get("shape", "rect"), header=nd.get("header", "")
+            )
+            self.nodes[node.id] = node
+
+        saved_edges = self.model.workflow_data.get("edges", [])
+        for ed in saved_edges:
+            source_node = self.nodes.get(ed["source"])
+            target_node = self.nodes.get(ed["target"])
+            if source_node and target_node:
+                edge = CanvasEdge(
+                    self, source_node, target_node,
+                    edge_id=ed["id"], direction=ed.get("direction", "last"),
+                    color=ed.get("color", "#888888"), dashed=ed.get("dashed", False)
+                )
+                self.edges[edge.id] = edge
 
     def clear_canvas(self):
-        """Czyści ekran roboczy"""
         self.canvas.delete("all")
-        print("DEBUG: Wyczyściliśmy płótno.")
+        self.nodes.clear()
+        self.edges.clear()
+        self.draw_grid()
+# ==========================================
+# GŁÓWNA APLIKACJA (NIE RUSZAJ)
+# ==========================================
 
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):

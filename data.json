@@ -1,8 +1,8 @@
 {
     "preferences": {
         "mode": "Pełny",
-        "columns": "3",
-        "theme": "Ciemny",
+        "columns": "1",
+        "theme": "Jasny",
         "color_style": "Tylko Ramki",
         "sort_by": "Waga Sumaryczna",
         "sort_order": "Rosnąco"
@@ -15,8 +15,42 @@
             "is_pinned": true,
             "has_workflow": true,
             "workflow_data": {
-                "nodes": [],
-                "edges": []
+                "nodes": [
+                    {
+                        "id": "6de28fbd-160f-4afa-990d-859d926592b3",
+                        "x": -200,
+                        "y": -140,
+                        "text": "1",
+                        "header": "",
+                        "type": "block",
+                        "shape": "parallelogram",
+                        "color": "#ffffff",
+                        "width": 160,
+                        "height": 80
+                    },
+                    {
+                        "id": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
+                        "x": 100,
+                        "y": -140,
+                        "text": "2",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "width": 160,
+                        "height": 80
+                    }
+                ],
+                "edges": [
+                    {
+                        "id": "dbed5d9b-0c03-4461-999b-5cf6a0bb2514",
+                        "source": "6de28fbd-160f-4afa-990d-859d926592b3",
+                        "target": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false
+                    }
+                ]
             },
             "tags": [
                 "backend",
@@ -419,7 +453,7 @@
                 "todos": [
                     {
                         "task": "Klient A",
-                        "is_done": true
+                        "is_done": false
                     },
                     {
                         "task": "Klient B",
