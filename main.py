@@ -14,7 +14,7 @@ import tkinter as tk  # Potrzebne do Canvasu
 
 
 class WorkflowCanvasFrame(ctk.CTkFrame):
-    """Puste płótno, które za chwilę zmienimy w zaawansowany kreator diagramów!"""
+    """Płótno z paskiem narzędzi bocznych do tworzenia diagramów"""
 
     def __init__(self, master, tile_model, close_callback, manager, **kwargs):
         super().__init__(master, **kwargs)
@@ -22,24 +22,101 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.close_callback = close_callback
         self.manager = manager
 
+        # Układ: 2 wiersze (header, canvas), 2 kolumny (toolbar, canvas)
         self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)  # Kolumna 1 (płótno) zabiera całe wolne miejsce
 
-        # Pasek górny
+        # ==========================================
+        # 1. PASEK GÓRNY (Header)
+        # ==========================================
         header = ctk.CTkFrame(self, height=50, fg_color="transparent")
-        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
 
-        ctk.CTkButton(header, text="< Wróć do listy", width=120, command=self.close_callback).pack(side="left",
+        ctk.CTkButton(header, text="< Wróć do listy", width=100, command=self.close_callback).pack(side="left",
                                                                                                    padx=(0, 20))
-        ctk.CTkLabel(header, text=f"📍 Workflow projektu: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
+        ctk.CTkLabel(header, text=f"📍 Workflow: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
 
-        # Miejsce na ogromny Canvas (Używamy natywnego tk.Canvas, bo wspiera rysowanie linii)
+        # Przyciski zarządzania płótnem
+        ctk.CTkButton(header, text="💾 Zapisz", width=100, fg_color="green", hover_color="darkgreen",
+                      command=self.save_workflow).pack(side="right", padx=(10, 0))
+        ctk.CTkButton(header, text="🗑️ Wyczyść", width=100, fg_color="#8b0000", hover_color="#5c0000",
+                      command=self.clear_canvas).pack(side="right")
+
+        # ==========================================
+        # 2. PASEK NARZĘDZI BOCZNY (Toolbar)
+        # ==========================================
+        self.toolbar = ctk.CTkFrame(self, width=160)
+        self.toolbar.grid(row=1, column=0, sticky="ns", padx=(20, 10), pady=(0, 20))
+
+        ctk.CTkLabel(self.toolbar, text="Narzędzia", font=st.FONT_TITLE).pack(pady=(15, 20))
+
+        # Zmienna przechowująca aktualnie wybrany tryb narzędzia
+        self.current_mode = tk.StringVar(value="move")
+
+        # Lista dostępnych narzędzi (Tekst na przycisku, wartość trybu)
+        tools = [
+            ("🖱️ Przesuwaj / Edytuj", "move"),
+            ("🔲 Dodaj Blok", "add_block"),
+            ("📝 Dodaj Notatkę", "add_note"),
+            ("↗️ Połącz (Strzałka)", "add_edge"),
+            ("❌ Usuń element", "delete")
+        ]
+
+        # Generowanie przycisków Radio (tylko jeden może być wciśnięty)
+        for text, mode in tools:
+            rb = ctk.CTkRadioButton(
+                self.toolbar,
+                text=text,
+                variable=self.current_mode,
+                value=mode,
+                font=("Helvetica", 13),
+                command=self.on_tool_changed
+            )
+            rb.pack(anchor="w", padx=15, pady=12)
+
+        # ==========================================
+        # 3. OBSZAR PŁÓTNA (Canvas)
+        # ==========================================
         self.canvas_container = ctk.CTkFrame(self)
-        self.canvas_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+        self.canvas_container.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=(0, 20))
 
-        # Puste czarne/szare płótno
-        self.canvas = tk.Canvas(self.canvas_container, bg="#1e1e1e", highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True, padx=5, pady=5)
+        # Używamy czystego tkinter Canvas, bo CustomTkinter nie ma natywnego rysowania linii
+        self.canvas = tk.Canvas(self.canvas_container, bg="#1a1a1a", highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True, padx=2, pady=2)
+
+        # PODPIĘCIE GŁÓWNYCH ZDARZEŃ MYSZY (Fundamenty pod kolejny krok)
+        self.canvas.bind("<Button-1>", self.on_canvas_click)
+
+    # --- FUNKCJE INTERFEJSU PŁÓTNA ---
+    def on_tool_changed(self):
+        """Zmienia kursor myszy w zależności od narzędzia, żeby użytkownik wiedział w jakim jest trybie"""
+        mode = self.current_mode.get()
+        if mode == "add_edge":
+            self.canvas.configure(cursor="crosshair")  # Celownik
+        elif mode == "delete":
+            self.canvas.configure(cursor="pirate")  # Czaszka/krzyżyk (w zależności od systemu)
+        elif mode in ["add_block", "add_note"]:
+            self.canvas.configure(cursor="plus")  # Plusik
+        else:
+            self.canvas.configure(cursor="arrow")  # Zwykły kursor
+
+    def on_canvas_click(self, event):
+        """Złapie kliknięcie na płótnie i sprawdzi, jakie narzędzie jest aktywne"""
+        mode = self.current_mode.get()
+        print(f"DEBUG: Kliknięto w X:{event.x}, Y:{event.y} | Aktywny tryb: {mode}")
+
+        # Tutaj w kolejnym kroku dodamy logikę tworzenia bloków!
+
+    def save_workflow(self):
+        """Zapisuje cały stan na dysk"""
+        # Tu w przyszłości dodamy pakowanie narysowanych elementów do self.model.workflow_data
+        self.manager.save_to_file()
+        print("DEBUG: Zapisano zmiany workflow na dysku.")
+
+    def clear_canvas(self):
+        """Czyści ekran roboczy"""
+        self.canvas.delete("all")
+        print("DEBUG: Wyczyściliśmy płótno.")
 
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):
