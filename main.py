@@ -4,7 +4,7 @@ from models import TileManager, ProjectTileModel
 from ui import ProjectTileWidget, TileFormDialog
 
 ctk.set_appearance_mode("System")
-ctk.set_default_color_theme("dark-blue")
+ctk.set_default_color_theme("green")
 
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):
@@ -77,13 +77,13 @@ class SmartProjectTilesApp(ctk.CTk):
         for i in range(columns):
             self.scrollable_frame.grid_columnconfigure(i, weight=1)
 
-        # ZAAWANSOWANE SORTOWANIE:
-        # 1. x.is_completed (False ląduje przed True, więc zrobione spadają na dół)
-        # 2. st.PRIORITY_RANK (sortuje według przypisanych "wag" 1-5, od najważniejszych do najmniej ważnych)
-        sorted_tiles = sorted(
-            self.manager.tiles,
-            key=lambda x: (x.is_completed, st.PRIORITY_RANK.get(x.priority, 5))
-        )
+            # ZAAWANSOWANE SORTOWANIE:
+            # 1. x.is_completed (Zrobione na dół)
+            # 2. x.total_weight (Obliczana na żywo Waga Sumaryczna 2-11)
+            sorted_tiles = sorted(
+                self.manager.tiles,
+                key=lambda x: (x.is_completed, x.total_weight)
+            )
 
         for index, tile_model in enumerate(sorted_tiles):
             wiersz = index // columns

@@ -43,3 +43,28 @@ PRIORITY_LABELS = {
     "low": "Niski",
     "without": "Brak"
 }
+# --- LOGIKA CZASU I WAG SUMARYCZNYCH ---
+# 7 przechodzących kolorów dla tekstów oznaczających czas
+TIME_COLORS = {
+    "overdue": ("#8b0000", "#ff4a4a"), # Czerwony (po terminie)
+    "today":   ("#cc0000", "#ff3333"), # Jasnoczerwony (na dziś)
+    "1_3":     ("#e65c00", "#ff7b00"), # Ciemnopomarańczowy (1-3 dni)
+    "4_7":     ("#b38f00", "#ffcc00"), # Pomarańczowo-żółty (4-7 dni)
+    "8_14":    ("#739900", "#99cc00"), # Żółto-zielony (8-14 dni)
+    "15_plus": ("#2e8b57", "#3cb371"), # Zielony (+15 dni)
+    "none":    ("#808080", "#a9a9a9")  # Szary (brak terminu)
+}
+
+# Gradient kolorów ramek dla wag sumarycznych (Priorytet 1-5 + Czas 1-6 = Wynik od 2 do 11)
+SUMMATIVE_COLORS = {
+    2: ("#ff0000", "#cc0000"), # Krytyczne
+    3: ("#ff3300", "#cc2900"),
+    4: ("#ff6600", "#cc5200"),
+    5: ("#ff9900", "#cc7a00"),
+    6: ("#ffcc00", "#cca300"),
+    7: ("#ccff00", "#a3cc00"),
+    8: ("#99ff00", "#7acc00"),
+    9: ("#66ff00", "#52cc00"),
+    10: ("#33ff00", "#29cc00"),
+    11: ("#00ff00", "#00cc00") # Zupełnie na luzie
+}
