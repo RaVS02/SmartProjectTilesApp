@@ -3,18 +3,24 @@ import json
 import os
 from datetime import datetime # <--- NOWY IMPORT
 
+
 class ProjectTileModel:
-    # Dodano is_pinned=False
-    def __init__(self, title, tags=None, priority="low", deadline=None, color=None, content=None, is_completed=False, is_pinned=False, tile_id=None):
+    def __init__(self, title, tags=None, priority="low", deadline=None, color=None, content=None, is_completed=False,
+                 is_pinned=False, has_workflow=False, workflow_data=None, tile_id=None):
         self.id = tile_id if tile_id else str(uuid.uuid4())
         self.is_completed = is_completed
-        self.is_pinned = is_pinned # <--- NOWE
+        self.is_pinned = is_pinned
         self.title = title
         self.tags = tags if tags is not None else []
         self.priority = priority
         self.deadline = deadline
         self.color = color
         self.content = content if content is not None else {"text": None, "todos": []}
+
+        # --- NOWE: Opcja Workflow ---
+        self.has_workflow = has_workflow
+        # Domyślny, pusty słownik na węzły (nodes) i połączenia (edges)
+        self.workflow_data = workflow_data if workflow_data is not None else {"nodes": [], "edges": []}
 
     @property
     def days_left(self):
@@ -23,7 +29,8 @@ class ProjectTileModel:
             deadline_date = datetime.strptime(self.deadline, "%Y-%m-%d").date()
             today = datetime.now().date()
             return (deadline_date - today).days
-        except ValueError: return None
+        except ValueError:
+            return None
 
     @property
     def time_weight(self):
@@ -46,10 +53,11 @@ class ProjectTileModel:
         return f"<ProjectTileModel: '{self.title}' (Priorytet: {self.priority}, Deadline: {self.deadline})>"
 
     def to_dict(self):
-        # Dodano zapis is_pinned
         return {
             "id": self.id, "title": self.title, "is_completed": self.is_completed, "is_pinned": self.is_pinned,
-            "tags": self.tags, "priority": self.priority, "deadline": self.deadline, "color": self.color, "content": self.content
+            "has_workflow": self.has_workflow, "workflow_data": self.workflow_data,  # <--- Zapisujemy do pliku
+            "tags": self.tags, "priority": self.priority, "deadline": self.deadline, "color": self.color,
+            "content": self.content
         }
 
 
@@ -88,8 +96,6 @@ class TileManager:
         try:
             with open(self.filepath, "r", encoding="utf-8") as file:
                 data = json.load(file)
-
-                # Odczytywanie preferencji (jeśli istnieją w pliku)
                 if "preferences" in data:
                     self.preferences.update(data["preferences"])
 
@@ -101,6 +107,8 @@ class TileManager:
                         priority=tile_data.get("priority", "low"),
                         is_completed=tile_data.get("is_completed", False),
                         is_pinned=tile_data.get("is_pinned", False),
+                        has_workflow=tile_data.get("has_workflow", False),  # <--- Odczytywanie
+                        workflow_data=tile_data.get("workflow_data", {"nodes": [], "edges": []}),  # <--- Odczytywanie
                         deadline=tile_data.get("deadline"),
                         color=tile_data.get("color"),
                         content=tile_data.get("content"),

@@ -10,7 +10,36 @@ ctk.set_default_color_theme("green")
 import math # <--- Upewnij się, że masz to zaimportowane na górze pliku main.py
 
 import math
+import tkinter as tk  # Potrzebne do Canvasu
 
+
+class WorkflowCanvasFrame(ctk.CTkFrame):
+    """Puste płótno, które za chwilę zmienimy w zaawansowany kreator diagramów!"""
+
+    def __init__(self, master, tile_model, close_callback, manager, **kwargs):
+        super().__init__(master, **kwargs)
+        self.model = tile_model
+        self.close_callback = close_callback
+        self.manager = manager
+
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        # Pasek górny
+        header = ctk.CTkFrame(self, height=50, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+
+        ctk.CTkButton(header, text="< Wróć do listy", width=120, command=self.close_callback).pack(side="left",
+                                                                                                   padx=(0, 20))
+        ctk.CTkLabel(header, text=f"📍 Workflow projektu: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
+
+        # Miejsce na ogromny Canvas (Używamy natywnego tk.Canvas, bo wspiera rysowanie linii)
+        self.canvas_container = ctk.CTkFrame(self)
+        self.canvas_container.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
+
+        # Puste czarne/szare płótno
+        self.canvas = tk.Canvas(self.canvas_container, bg="#1e1e1e", highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True, padx=5, pady=5)
 
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):
@@ -36,6 +65,8 @@ class SmartProjectTilesApp(ctk.CTk):
 
         # Nasłuchiwanie zmiany rozmiaru GŁÓWNEGO okna
         self.bind("<Configure>", self.on_window_resize)
+
+
 
     def setup_ui(self):
         self.manager = TileManager()
@@ -274,7 +305,8 @@ class SmartProjectTilesApp(ctk.CTk):
                 complete_callback=self.complete_tile,
                 edit_callback=self.edit_tile,
                 restore_callback=self.restore_tile,
-                pin_callback=self.pin_tile
+                pin_callback=self.pin_tile,
+                open_workflow_callback = self.open_workflow_view
             )
             tile_widget.grid(row=wiersz, column=kolumna, padx=10, pady=10, sticky="nsew")
 
@@ -304,6 +336,36 @@ class SmartProjectTilesApp(ctk.CTk):
 
     def update_existing_tile(self, updated_model):
         self.manager.save_to_file()
+        self.draw_tiles(reset_page=False)
+
+    def open_workflow_view(self, tile_model):
+        """Ukrywa główny widok i otwiera płótno dla konkretnego kafelka"""
+        # 1. Chowamy (ale nie niszczymy!) główne elementy GUI
+        self.toolbar_frame.grid_remove()
+        self.filter_frame.grid_remove()
+        self.scrollable_frame.grid_remove()
+        self.pagination_frame.grid_remove()
+
+        # 2. Tworzymy nowy widok Workflow i każemy mu wypełnić całe okno (rowspan=4)
+        self.workflow_view = WorkflowCanvasFrame(
+            master=self,
+            tile_model=tile_model,
+            close_callback=self.close_workflow_view,
+            manager=self.manager
+        )
+        self.workflow_view.grid(row=0, column=0, rowspan=4, sticky="nsew")
+
+    def close_workflow_view(self):
+        """Niszczy płótno i przywraca główny widok"""
+        self.workflow_view.destroy()
+
+        # Przywracamy schowane elementy GUI
+        self.toolbar_frame.grid()
+        self.filter_frame.grid()
+        self.scrollable_frame.grid()
+        self.pagination_frame.grid()
+
+        # Przerenderowujemy kafelki (na wypadek gdyby nazwa projektu się zmieniła w workflow)
         self.draw_tiles(reset_page=False)
 
 if __name__ == "__main__":

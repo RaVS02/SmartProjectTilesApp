@@ -10,6 +10,7 @@ class ProjectTileWidget(ctk.CTkFrame):
     def __init__(self, master, tile_model, is_compact=False, color_style="Kolorowe Tło",
                  save_callback=None, delete_callback=None, complete_callback=None,
                  edit_callback=None, restore_callback=None, pin_callback=None,
+                 open_workflow_callback=None,  # <--- NOWY CALLBACK
                  title_wrap=200, **kwargs):
         self.model = tile_model
         self.is_compact = is_compact
@@ -18,7 +19,7 @@ class ProjectTileWidget(ctk.CTkFrame):
 
         self.save_callback, self.delete_callback, self.complete_callback = save_callback, delete_callback, complete_callback
         self.edit_callback, self.restore_callback, self.pin_callback = edit_callback, restore_callback, pin_callback
-
+        self.open_workflow_callback = open_workflow_callback
         # --- LOGIKA PERSONALIZACJI KOLORÓW ---
         total_weight = self.model.total_weight
         if self.model.is_completed:
@@ -145,7 +146,7 @@ class ProjectTileWidget(ctk.CTkFrame):
                     checkbox_widget.configure(command=on_checkbox_click)
                     checkbox_widget.grid(row=index + 1, column=0, sticky="w", pady=2)
 
-        # ==========================================
+        #==========================================
         # SEKCJA 3: AKCJE (Zawsze widoczne na dole)
         # ==========================================
         action_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -153,23 +154,17 @@ class ProjectTileWidget(ctk.CTkFrame):
         action_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=action_pad_y)
         btn_font = ("Helvetica", 11)
 
+        # NOWE: Przycisk otwierający Workflow (jeśli włączone w modelu i nieukończone)
+        if self.model.has_workflow and not self.model.is_completed and self.open_workflow_callback:
+            ctk.CTkButton(action_frame, text="🗺️ Workflow", width=80, font=btn_font, fg_color="#1f538d",
+                          command=lambda: self.open_workflow_callback(self.model)).pack(side="left", padx=(2, 10))
+
         if self.model.is_completed:
-            if self.restore_callback: ctk.CTkButton(action_frame, text="⏪ Przywróć", width=70, font=btn_font,
-                                                    fg_color="#d48806", hover_color="#b07004",
-                                                    command=lambda: self.restore_callback(self.model)).pack(side="left",
-                                                                                                            padx=2)
+            if self.restore_callback: ctk.CTkButton(action_frame, text="⏪ Przywróć", width=70, font=btn_font, fg_color="#d48806", hover_color="#b07004", command=lambda: self.restore_callback(self.model)).pack(side="left", padx=2)
         else:
-            if self.edit_callback: ctk.CTkButton(action_frame, text="✏️ Edytuj", width=60, font=btn_font,
-                                                 command=lambda: self.edit_callback(self.model)).pack(side="left",
-                                                                                                      padx=2)
-            if self.complete_callback: ctk.CTkButton(action_frame, text="✅ Zrobione", width=70, font=btn_font,
-                                                     fg_color="green", hover_color="darkgreen",
-                                                     command=lambda: self.complete_callback(self.model)).pack(
-                side="left", padx=2)
-        if self.delete_callback: ctk.CTkButton(action_frame, text="🗑️ Usuń", width=50, font=btn_font,
-                                               fg_color="#8b0000", hover_color="#5c0000",
-                                               command=lambda: self.delete_callback(self.model)).pack(side="right",
-                                                                                                      padx=2)
+            if self.edit_callback: ctk.CTkButton(action_frame, text="✏️ Edytuj", width=60, font=btn_font, command=lambda: self.edit_callback(self.model)).pack(side="left", padx=2)
+            if self.complete_callback: ctk.CTkButton(action_frame, text="✅ Zrobione", width=70, font=btn_font, fg_color="green", hover_color="darkgreen", command=lambda: self.complete_callback(self.model)).pack(side="left", padx=2)
+        if self.delete_callback: ctk.CTkButton(action_frame, text="🗑️ Usuń", width=50, font=btn_font, fg_color="#8b0000", hover_color="#5c0000", command=lambda: self.delete_callback(self.model)).pack(side="right", padx=2)
 
 
 class TileFormDialog(ctk.CTkToplevel):
@@ -179,7 +174,7 @@ class TileFormDialog(ctk.CTkToplevel):
         self.existing_tile = existing_tile
 
         self.title("Edytuj Kafelek" if self.existing_tile else "Dodaj Nowy Kafelek")
-        self.geometry("450x700")
+        self.geometry("650x700")
         self.transient(master)
         self.grab_set()
         self.build_form()
@@ -205,23 +200,31 @@ class TileFormDialog(ctk.CTkToplevel):
                              date_pattern='y-mm-dd', state="disabled")
         self.cal.grid(row=2, column=1, padx=10, pady=10, sticky="w")
 
-        ctk.CTkLabel(self, text="Tagi:").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+        # Wiersz 3
+        self.workflow_var = ctk.BooleanVar(value=False)
+        self.workflow_cb = ctk.CTkCheckBox(self, text="Aktywuj płótno Workflow dla tego projektu",
+                                           variable=self.workflow_var)
+        self.workflow_cb.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
+
+        # Wiersz 4 (Przesunięte w dół)
+        ctk.CTkLabel(self, text="Tagi:").grid(row=4, column=0, padx=10, pady=10, sticky="e")
         self.tags_entry = ctk.CTkEntry(self, placeholder_text="np. praca, dom")
-        self.tags_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+        self.tags_entry.grid(row=4, column=1, padx=10, pady=10, sticky="ew")
 
-        ctk.CTkLabel(self, text="Opis:").grid(row=4, column=0, padx=10, pady=10, sticky="ne")
+        # Wiersz 5
+        ctk.CTkLabel(self, text="Opis:").grid(row=5, column=0, padx=10, pady=10, sticky="ne")
         self.text_box = ctk.CTkTextbox(self, height=80)
-        self.text_box.grid(row=4, column=1, padx=10, pady=10, sticky="ew")
+        self.text_box.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
 
-        ctk.CTkLabel(self, text="Zadania:").grid(row=5, column=0, padx=10, pady=10, sticky="ne")
+        # Wiersz 6
+        ctk.CTkLabel(self, text="Zadania:").grid(row=6, column=0, padx=10, pady=10, sticky="ne")
         self.todos_box = ctk.CTkTextbox(self, height=100)
-        self.todos_box.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
+        self.todos_box.grid(row=6, column=1, padx=10, pady=10, sticky="ew")
 
-        # --- NOWE: KOLOR TŁA Z PODGLĄDEM ---
-        ctk.CTkLabel(self, text="Kolor tła:").grid(row=6, column=0, padx=10, pady=10, sticky="e")
-
+        # Wiersz 7
+        ctk.CTkLabel(self, text="Kolor tła:").grid(row=7, column=0, padx=10, pady=10, sticky="e")
         color_frame = ctk.CTkFrame(self, fg_color="transparent")
-        color_frame.grid(row=6, column=1, padx=10, pady=10, sticky="ew")
+        color_frame.grid(row=7, column=1, padx=10, pady=10, sticky="ew")
         color_frame.grid_columnconfigure(0, weight=1)
 
         self.color_var = ctk.StringVar(value="Domyślny")
@@ -229,18 +232,17 @@ class TileFormDialog(ctk.CTkToplevel):
                                             variable=self.color_var, command=self.update_color_preview)
         self.color_menu.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 
-        # Kwadracik z podglądem
         self.color_preview = ctk.CTkFrame(color_frame, width=30, height=30, corner_radius=5, border_width=1,
                                           border_color="gray")
         self.color_preview.grid(row=0, column=1)
-        self.update_color_preview("Domyślny")  # Inicjalizacja podglądu
+        self.update_color_preview("Domyślny")
 
+        # Wiersz 8
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.grid(row=7, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=8, column=0, columnspan=2, pady=20)
         ctk.CTkButton(btn_frame, text="Zapisz", command=self.save_data).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text="Anuluj", command=self.destroy, fg_color="gray").pack(side="left", padx=10)
 
-        # Wypełnianie danych przy edycji
         if self.existing_tile:
             self.title_entry.insert(0, self.existing_tile.title)
             self.priority_menu.set(self.existing_tile.priority)
@@ -248,16 +250,19 @@ class TileFormDialog(ctk.CTkToplevel):
                 self.deadline_cb.select()
                 self.cal.configure(state="normal")
                 self.cal.set_date(datetime.strptime(self.existing_tile.deadline, "%Y-%m-%d").date())
+
+            # Wypełnienie zaznaczenia Workflow
+            if self.existing_tile.has_workflow:
+                self.workflow_cb.select()
+
             if self.existing_tile.tags: self.tags_entry.insert(0, ", ".join(self.existing_tile.tags))
             if self.existing_tile.content.get("text"): self.text_box.insert("0.0",
                                                                             self.existing_tile.content.get("text"))
             todos = self.existing_tile.content.get("todos", [])
             if todos: self.todos_box.insert("0.0", "\n".join([t["task"] for t in todos]))
 
-            # Odtwarzanie koloru
             if self.existing_tile.color:
                 for name, val in st.CUSTOM_TILE_COLORS.items():
-                    # Konwersja do krotki, bo JSON zwraca listy
                     if val and tuple(val) == tuple(self.existing_tile.color):
                         self.color_var.set(name)
                         self.update_color_preview(name)
@@ -284,7 +289,7 @@ class TileFormDialog(ctk.CTkToplevel):
         desc_text = self.text_box.get("0.0", "end").strip()
         todos_raw = self.todos_box.get("0.0", "end").strip()
         todos_list = [{"task": line.strip(), "is_done": False} for line in todos_raw.split("\n") if line.strip()]
-
+        has_workflow = self.workflow_var.get()
         selected_color = st.CUSTOM_TILE_COLORS.get(self.color_var.get())
 
         content = {"text": desc_text if desc_text else None, "todos": todos_list}
@@ -296,11 +301,12 @@ class TileFormDialog(ctk.CTkToplevel):
             self.existing_tile.tags = tags
             self.existing_tile.content = content
             self.existing_tile.color = selected_color
+            self.existing_tile.has_workflow = has_workflow
             self.on_save_callback(self.existing_tile)
         else:
             new_tile = ProjectTileModel(
                 title=title, tags=tags, priority=self.priority_menu.get(),
-                deadline=deadline, content=content, color=selected_color
+                deadline=deadline, content=content, color=selected_color,has_workflow=has_workflow
             )
             self.on_save_callback(new_tile)
 
