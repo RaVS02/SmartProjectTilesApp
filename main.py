@@ -37,11 +37,12 @@ class SmartProjectTilesApp(ctk.CTk):
         # Nasłuchiwanie zmiany rozmiaru GŁÓWNEGO okna
         self.bind("<Configure>", self.on_window_resize)
 
-        self.setup_ui()
-
     def setup_ui(self):
         self.manager = TileManager()
         self.manager.load_from_file()
+
+        # Ustawiamy motyw zaraz po wczytaniu preferencji
+        self.change_theme(self.manager.preferences.get("theme", "System"), save=False)
 
         # ==========================================
         # 1. PASEK NARZĘDZI (Wiersz 0)
@@ -55,19 +56,19 @@ class SmartProjectTilesApp(ctk.CTk):
         self.add_btn.grid(row=0, column=0, sticky="w")
 
         ctk.CTkLabel(self.toolbar_frame, text="Rozmiar:").grid(row=0, column=1, sticky="e", padx=(0, 10))
-        self.mode_var = ctk.StringVar(value="Pełny")
+        self.mode_var = ctk.StringVar(value=self.manager.preferences.get("mode", "Pełny"))
         self.mode_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Pełny", "Skrócony"],
-                                                    variable=self.mode_var, command=lambda _: self.draw_tiles())
+                                                    variable=self.mode_var, command=self.on_preference_change)
         self.mode_switcher.grid(row=0, column=2, sticky="e", padx=(0, 20))
 
         ctk.CTkLabel(self.toolbar_frame, text="Kolumny:").grid(row=0, column=3, sticky="e", padx=(0, 10))
-        self.col_var = ctk.StringVar(value="3")
+        self.col_var = ctk.StringVar(value=self.manager.preferences.get("columns", "3"))
         self.col_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["1", "2", "3", "4", "5"],
-                                                   variable=self.col_var, command=lambda _: self.draw_tiles())
+                                                   variable=self.col_var, command=self.on_preference_change)
         self.col_switcher.grid(row=0, column=4, sticky="e", padx=(0, 20))
 
         ctk.CTkLabel(self.toolbar_frame, text="Motyw:").grid(row=0, column=5, sticky="e", padx=(0, 10))
-        self.theme_var = ctk.StringVar(value="System")
+        self.theme_var = ctk.StringVar(value=self.manager.preferences.get("theme", "System"))
         self.theme_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Jasny", "Ciemny", "System"],
                                                      variable=self.theme_var, command=self.change_theme)
         self.theme_switcher.grid(row=0, column=6, sticky="e")
@@ -80,7 +81,6 @@ class SmartProjectTilesApp(ctk.CTk):
         self.filter_frame.grid_columnconfigure(0, weight=1)
 
         self.search_var = ctk.StringVar()
-        # ZMIANA: Zamiast odświeżać od razu, wywołujemy funkcję schedule_search
         self.search_var.trace_add("write", self.schedule_search)
 
         self.search_entry = ctk.CTkEntry(self.filter_frame, textvariable=self.search_var,
@@ -88,45 +88,40 @@ class SmartProjectTilesApp(ctk.CTk):
         self.search_entry.grid(row=0, column=0, sticky="w")
 
         ctk.CTkLabel(self.filter_frame, text="Kolory:").grid(row=0, column=1, sticky="e", padx=(0, 10))
-        self.color_style_var = ctk.StringVar(value="Kolorowe Tło")
+        self.color_style_var = ctk.StringVar(value=self.manager.preferences.get("color_style", "Kolorowe Tło"))
         self.color_style_menu = ctk.CTkOptionMenu(
             self.filter_frame, values=["Kolorowe Tło", "Tylko Ramki", "Minimalistyczny"],
-            variable=self.color_style_var, command=lambda _: self.draw_tiles(), width=130
+            variable=self.color_style_var, command=self.on_preference_change, width=130
         )
         self.color_style_menu.grid(row=0, column=2, sticky="e", padx=(0, 20))
 
         ctk.CTkLabel(self.filter_frame, text="Sortuj:").grid(row=0, column=3, sticky="e", padx=(0, 10))
-        self.sort_var = ctk.StringVar(value="Waga Sumaryczna")
+        self.sort_var = ctk.StringVar(value=self.manager.preferences.get("sort_by", "Waga Sumaryczna"))
         self.sort_menu = ctk.CTkOptionMenu(
             self.filter_frame, values=["Waga Sumaryczna", "Deadline", "Główny Priorytet", "Nazwa (A-Z)", "Tagi (A-Z)"],
-            variable=self.sort_var, command=lambda _: self.draw_tiles(), width=160
+            variable=self.sort_var, command=self.on_preference_change, width=160
         )
         self.sort_menu.grid(row=0, column=4, sticky="e")
 
-        self.sort_order_var = ctk.StringVar(value="Rosnąco")
+        self.sort_order_var = ctk.StringVar(value=self.manager.preferences.get("sort_order", "Rosnąco"))
         self.sort_order_btn = ctk.CTkButton(self.filter_frame, textvariable=self.sort_order_var, width=70,
                                             command=self.toggle_sort_order)
         self.sort_order_btn.grid(row=0, column=5, sticky="e", padx=(10, 0))
 
         # ==========================================
-        # 3. RAMKA KAFELKÓW (Wiersz 2)
+        # 3. RAMKA KAFELKÓW (Wiersz 2) & 4. STRONICOWANIE (Wiersz 3)
         # ==========================================
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
         self.scrollable_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=(10, 10))
 
-        # ==========================================
-        # 4. PASEK STRONICOWANIA (Wiersz 3)
-        # ==========================================
         self.pagination_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.pagination_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 15))
         self.pagination_frame.grid_columnconfigure(1, weight=1)
 
         self.prev_btn = ctk.CTkButton(self.pagination_frame, text="< Poprzednia", width=100, command=self.prev_page)
         self.prev_btn.grid(row=0, column=0, sticky="w")
-
         self.page_label = ctk.CTkLabel(self.pagination_frame, text="Strona 1 z 1", font=st.FONT_DEFAULT)
         self.page_label.grid(row=0, column=1, sticky="ew")
-
         self.next_btn = ctk.CTkButton(self.pagination_frame, text="Następna >", width=100, command=self.next_page)
         self.next_btn.grid(row=0, column=2, sticky="e")
 
@@ -143,20 +138,35 @@ class SmartProjectTilesApp(ctk.CTk):
                 if self.resize_timer:
                     self.after_cancel(self.resize_timer)
                 self.resize_timer = self.after(100, lambda: self.draw_tiles(reset_page=False))
+
     def schedule_search(self, *args):
-        """Opóźnia odświeżanie podczas pisania, zapobiegając migotaniu interfejsu"""
-        if self.search_timer:
-            self.after_cancel(self.search_timer)
-        # Czeka 300ms po ostatnim wciśnięciu klawisza przed narysowaniem
+        if self.search_timer: self.after_cancel(self.search_timer)
         self.search_timer = self.after(300, lambda: self.draw_tiles(reset_page=True))
 
-    def change_theme(self, theme_name):
+    def save_current_preferences(self):
+        """Aktualizuje słownik w menedżerze i zapisuje go do JSONa"""
+        self.manager.preferences["mode"] = self.mode_var.get()
+        self.manager.preferences["columns"] = self.col_var.get()
+        self.manager.preferences["theme"] = self.theme_var.get()
+        self.manager.preferences["color_style"] = self.color_style_var.get()
+        self.manager.preferences["sort_by"] = self.sort_var.get()
+        self.manager.preferences["sort_order"] = self.sort_order_var.get()
+        self.manager.save_to_file()
+
+    def on_preference_change(self, *args):
+        """Wywoływana przy kliknięciu w filtry/widoki - zapisuje stan i odświeża ekran"""
+        self.save_current_preferences()
+        self.draw_tiles()
+    def change_theme(self, theme_name, save=True):
         if theme_name == "Jasny":
             ctk.set_appearance_mode("Light")
         elif theme_name == "Ciemny":
             ctk.set_appearance_mode("Dark")
         else:
             ctk.set_appearance_mode("System")
+
+        if save:
+            self.save_current_preferences()
 
     def prev_page(self):
         if self.current_page > 1:
@@ -170,7 +180,7 @@ class SmartProjectTilesApp(ctk.CTk):
     def toggle_sort_order(self):
         current = self.sort_order_var.get()
         self.sort_order_var.set("Malejąco" if current == "Rosnąco" else "Rosnąco")
-        self.draw_tiles()
+        self.on_preference_change()
 
     def open_add_dialog(self):
         dialog = TileFormDialog(master=self, on_save_callback=self.save_new_tile)

@@ -52,32 +52,34 @@ class ProjectTileModel:
             "tags": self.tags, "priority": self.priority, "deadline": self.deadline, "color": self.color, "content": self.content
         }
 
+
 class TileManager:
     def __init__(self, filepath="data.json"):
         self.filepath = filepath
-        self.tiles = []  # Tu będziemy trzymać obiekty ProjectTileModel
+        self.tiles = []
+        # Domyślne preferencje (użyte, jeśli plik jeszcze ich nie ma)
+        self.preferences = {
+            "mode": "Pełny",
+            "columns": "3",
+            "theme": "System",
+            "color_style": "Kolorowe Tło",
+            "sort_by": "Waga Sumaryczna",
+            "sort_order": "Rosnąco"
+        }
 
     def add_tile(self, tile):
-        """Dodaje nowy kafelek do listy w pamięci"""
         self.tiles.append(tile)
 
     def save_to_file(self):
-        """Zapisuje obecny stan kafelków do pliku JSON"""
-
-        tiles_data = []
-
-        for tile in self.tiles:
-            tiles_data.append(tile.to_dict())
-
-        final_data = {"project_tiles": tiles_data}
-
-
-        # 3. Zapis do pliku (ten fragment daję gotowy, bo operacje I/O bywają kapryśne)
-        # Używamy bloku 'with', który automatycznie zamknie plik po zakończeniu zapisu
+        tiles_data = [tile.to_dict() for tile in self.tiles]
+        # Zapisujemy preferencje ORAZ kafelki do jednego pliku
+        final_data = {
+            "preferences": self.preferences,
+            "project_tiles": tiles_data
+        }
         try:
             with open(self.filepath, "w", encoding="utf-8") as file:
                 json.dump(final_data, file, indent=4, ensure_ascii=False)
-            print(f"Pomyślnie zapisano dane do {self.filepath}")
         except Exception as e:
             print(f"Błąd podczas zapisu do pliku: {e}")
 
@@ -86,22 +88,25 @@ class TileManager:
         try:
             with open(self.filepath, "r", encoding="utf-8") as file:
                 data = json.load(file)
-                tiles_list = data.get("project_tiles", [])
 
+                # Odczytywanie preferencji (jeśli istnieją w pliku)
+                if "preferences" in data:
+                    self.preferences.update(data["preferences"])
+
+                tiles_list = data.get("project_tiles", [])
                 for tile_data in tiles_list:
                     nowy_kafelek = ProjectTileModel(
                         title=tile_data["title"],
-                        tags=tile_data["tags"],
-                        priority=tile_data["priority"],
+                        tags=tile_data.get("tags", []),
+                        priority=tile_data.get("priority", "low"),
                         is_completed=tile_data.get("is_completed", False),
-                        is_pinned=tile_data.get("is_pinned", False),  # <--- NOWE Odczytywanie
-                        deadline=tile_data["deadline"],
-                        color=tile_data["color"],
-                        content=tile_data["content"],
-                        tile_id=tile_data["id"]
+                        is_pinned=tile_data.get("is_pinned", False),
+                        deadline=tile_data.get("deadline"),
+                        color=tile_data.get("color"),
+                        content=tile_data.get("content"),
+                        tile_id=tile_data.get("id")
                     )
                     self.add_tile(nowy_kafelek)
-            print(f"Pomyślnie wczytano dane z {self.filepath}")
         except FileNotFoundError:
             print(f"Plik {self.filepath} nie istnieje. Zaczynamy z czystą kartą.")
         except Exception as e:

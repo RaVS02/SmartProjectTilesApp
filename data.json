@@ -1,4 +1,12 @@
 {
+    "preferences": {
+        "mode": "Pełny",
+        "columns": "3",
+        "theme": "Ciemny",
+        "color_style": "Tylko Ramki",
+        "sort_by": "Waga Sumaryczna",
+        "sort_order": "Rosnąco"
+    },
     "project_tiles": [
         {
             "id": "tile-01-pinned-crit",
