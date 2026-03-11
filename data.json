@@ -1,0 +1,857 @@
+{
+    "project_tiles": [
+        {
+            "id": "tile-01-pinned-crit",
+            "title": "🔥 KRYTYCZNA POPRAWKA SERWERA (Przypięte)",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "backend",
+                "pilne",
+                "devops"
+            ],
+            "priority": "very-high",
+            "deadline": "2026-03-09",
+            "color": [
+                "#fae6e6",
+                "#3a1a1a"
+            ],
+            "content": {
+                "text": "Serwer nie odpowiada po aktualizacji! (Zadanie przypięte, po terminie - najwyższa waga).",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-02-pinned-info",
+            "title": "📌 Główne Cele na Q1 2026",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "cele",
+                "biznes"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-31",
+            "color": [
+                "#f0e6fa",
+                "#2a1a3a"
+            ],
+            "content": {
+                "text": "Tablica przypięta informacyjnie.",
+                "todos": [
+                    {
+                        "task": "Wzrost o 20%",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-03-today",
+            "title": "Prezentacja dla Inwestorów",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "biznes",
+                "prezentacja"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-11",
+            "color": null,
+            "content": {
+                "text": "Termin na dzisiaj! Ustawiona wysoka waga czasowa.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-04",
+            "title": "Zapłacić podatek i ZUS za luty",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "finanse",
+                "księgowość"
+            ],
+            "priority": "very-high",
+            "deadline": "2026-03-15",
+            "color": [
+                "#fae6e6",
+                "#3a1a1a"
+            ],
+            "content": {
+                "text": "Nie można tego przegapić.",
+                "todos": [
+                    {
+                        "task": "Wygenerować przelew",
+                        "is_done": true
+                    },
+                    {
+                        "task": "Zatwierdzić",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-05",
+            "title": "Długi, skomplikowany tytuł projektu, który ma za zadanie przetestować zawijanie tekstu na kafelku w aplikacji",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "test",
+                "ui"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-14",
+            "color": [
+                "#e6f0fa",
+                "#1a2a3a"
+            ],
+            "content": {
+                "text": "Tytuł powinien się ładnie połamać.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-06",
+            "title": "Trening na siłowni - Klatka + Triceps",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "zdrowie",
+                "sport"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-12",
+            "color": [
+                "#e6fae6",
+                "#1a3a20"
+            ],
+            "content": {
+                "text": "1 dzień do terminu.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-07",
+            "title": "Projekt Etap 7 - Workflow Canvas (Architektura)",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "python",
+                "app",
+                "dev"
+            ],
+            "priority": "very-high",
+            "deadline": null,
+            "color": [
+                "#f0e6fa",
+                "#2a1a3a"
+            ],
+            "content": {
+                "text": "Przygotować się do rysowania strzałek na płótnie Canvas.",
+                "todos": [
+                    {
+                        "task": "Obiekty przeciągane",
+                        "is_done": false
+                    },
+                    {
+                        "task": "Wiązania",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-08",
+            "title": "Zrobić zakupy na weekend",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "without",
+            "deadline": "2026-03-13",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": [
+                    {
+                        "task": "Mleko",
+                        "is_done": false
+                    },
+                    {
+                        "task": "Jajka",
+                        "is_done": false
+                    },
+                    {
+                        "task": "Chleb",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-09",
+            "title": "Zaległy Raport",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "praca"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-01",
+            "color": null,
+            "content": {
+                "text": "Zadanie z zeszłego tygodnia.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-10",
+            "title": "Przeczytać dokumentację Tkinter Canvas",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "nauka",
+                "dev"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-20",
+            "color": [
+                "#fafae6",
+                "#3a3a1a"
+            ],
+            "content": {
+                "text": "Potrzebne do Etapu 7.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-11",
+            "title": "Umyć samochód",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "auto"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-18",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-12",
+            "title": "Zaktualizować CV",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "kariera"
+            ],
+            "priority": "high",
+            "deadline": "2026-04-05",
+            "color": [
+                "#faefe6",
+                "#3a2a1a"
+            ],
+            "content": {
+                "text": "Dodać nowy projekt w Pythonie.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-13",
+            "title": "Zaplanować urlop (Sierpień)",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "wakacje",
+                "planowanie"
+            ],
+            "priority": "without",
+            "deadline": "2026-06-01",
+            "color": [
+                "#fafae6",
+                "#3a3a1a"
+            ],
+            "content": {
+                "text": "Daleki termin.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-14",
+            "title": "Bug: Problem ze stronicowaniem",
+            "is_completed": true,
+            "is_pinned": false,
+            "tags": [
+                "bugfix",
+                "done"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-10",
+            "color": null,
+            "content": {
+                "text": "To zadanie jest ukończone, powinno być na 3. stronie.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-15",
+            "title": "Zadzwonić do mechanika",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "auto"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-12",
+            "color": null,
+            "content": {
+                "text": "Wymiana oleju.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-16",
+            "title": "Wystawić faktury za luty",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "finanse"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-14",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": [
+                    {
+                        "task": "Klient A",
+                        "is_done": true
+                    },
+                    {
+                        "task": "Klient B",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-17",
+            "title": "Wymiana opon na letnie",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "auto"
+            ],
+            "priority": "low",
+            "deadline": "2026-04-20",
+            "color": null,
+            "content": {
+                "text": "Tylko ramki będą miały kolor zielony.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-18",
+            "title": "Przejrzeć logi z serwera",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "backend"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-11",
+            "color": [
+                "#e6f0fa",
+                "#1a2a3a"
+            ],
+            "content": {
+                "text": "Na dziś.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-19",
+            "title": "Odpisać na maile",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "komunikacja"
+            ],
+            "priority": "without",
+            "deadline": null,
+            "color": null,
+            "content": {
+                "text": "Ciągły proces.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-21",
+            "title": "Kupić prezent na urodziny",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom",
+                "rodzina"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-22",
+            "color": [
+                "#faefe6",
+                "#3a2a1a"
+            ],
+            "content": {
+                "text": "Zostało mało czasu.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-22",
+            "title": "Uporządkować biurko",
+            "is_completed": true,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-05",
+            "color": null,
+            "content": {
+                "text": "Zrobione.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-23",
+            "title": "Zamówić nowe krzesło",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "biuro"
+            ],
+            "priority": "low",
+            "deadline": null,
+            "color": null,
+            "content": {
+                "text": "Poczekać na promocję.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-24",
+            "title": "Code Review - Moduł autoryzacji",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "backend",
+                "dev"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-13",
+            "color": null,
+            "content": {
+                "text": "PR wisi od dwóch dni.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-25",
+            "title": "Nauczyć się podstaw Docker'a",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "nauka"
+            ],
+            "priority": "medium",
+            "deadline": "2026-05-01",
+            "color": [
+                "#e6f0fa",
+                "#1a2a3a"
+            ],
+            "content": {
+                "text": null,
+                "todos": [
+                    {
+                        "task": "Instalacja",
+                        "is_done": false
+                    },
+                    {
+                        "task": "Pierwszy kontener",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-26",
+            "title": "Zrobić obiad",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-11",
+            "color": [
+                "#e6fae6",
+                "#1a3a20"
+            ],
+            "content": {
+                "text": "Dzisiaj makaron.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-27",
+            "title": "Wyrzucić śmieci",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-11",
+            "color": null,
+            "content": {
+                "text": "Plastik i papier.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-28",
+            "title": "Rozliczenie PIT",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "finanse"
+            ],
+            "priority": "high",
+            "deadline": "2026-04-30",
+            "color": [
+                "#fae6e6",
+                "#3a1a1a"
+            ],
+            "content": {
+                "text": "Nie zostawiać na ostatnią chwilę.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-29",
+            "title": "Sprawdzić ubezpieczenie mieszkania",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "finanse"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-25",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-30",
+            "title": "Zabezpieczyć sieć WiFi",
+            "is_completed": true,
+            "is_pinned": false,
+            "tags": [
+                "bezpieczeństwo"
+            ],
+            "priority": "high",
+            "deadline": "2026-02-10",
+            "color": null,
+            "content": {
+                "text": "Hasło zmienione.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-31",
+            "title": "Posprzątać w piwnicy",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "without",
+            "deadline": "2026-07-01",
+            "color": [
+                "#fafae6",
+                "#3a3a1a"
+            ],
+            "content": {
+                "text": "Przed wakacjami.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-32",
+            "title": "Przeczytać książkę o AI",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "nauka",
+                "książki"
+            ],
+            "priority": "low",
+            "deadline": null,
+            "color": null,
+            "content": {
+                "text": "Czeka na półce.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-33",
+            "title": "Nagrać tutorial z Pythona",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "praca",
+                "youtube"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-16",
+            "color": [
+                "#e6f0fa",
+                "#1a2a3a"
+            ],
+            "content": {
+                "text": "Odcinek o CustomTkinter.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-34",
+            "title": "Poprawki w module bazy danych",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "backend",
+                "bugfix"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-12",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": [
+                    {
+                        "task": "Optymalizacja zapytań",
+                        "is_done": false
+                    },
+                    {
+                        "task": "Indeksy",
+                        "is_done": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": "tile-35",
+            "title": "Kupić nową kawę do biura",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "biuro"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-14",
+            "color": [
+                "#faefe6",
+                "#3a2a1a"
+            ],
+            "content": {
+                "text": "Byle dobrą.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-36",
+            "title": "Testowanie aplikacji Menedżera",
+            "is_completed": true,
+            "is_pinned": false,
+            "tags": [
+                "test",
+                "done"
+            ],
+            "priority": "high",
+            "deadline": "2026-03-11",
+            "color": null,
+            "content": {
+                "text": "To też powinno spaść na dół.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-37",
+            "title": "Odnowić subskrypcję Spotify",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "prywatne"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-15",
+            "color": null,
+            "content": {
+                "text": null,
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-38",
+            "title": "Spotkanie z klientem",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "biznes",
+                "spotkanie"
+            ],
+            "priority": "very-high",
+            "deadline": "2026-03-12",
+            "color": [
+                "#f0e6fa",
+                "#2a1a3a"
+            ],
+            "content": {
+                "text": "Trzecie przypięte zadanie.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-39",
+            "title": "Kupić bilety do kina",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "rozrywka"
+            ],
+            "priority": "low",
+            "deadline": "2026-03-14",
+            "color": null,
+            "content": {
+                "text": "Na najnowszą premierę.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-40",
+            "title": "Naprawić kran w kuchni",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-18",
+            "color": null,
+            "content": {
+                "text": "Cieknie woda.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-41",
+            "title": "Odświeżyć portolio",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "kariera",
+                "design"
+            ],
+            "priority": "high",
+            "deadline": "2026-04-10",
+            "color": [
+                "#e6f0fa",
+                "#1a2a3a"
+            ],
+            "content": {
+                "text": "Nowe screenshoty aplikacji.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-42",
+            "title": "Posadzić kwiaty na balkonie",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "dom"
+            ],
+            "priority": "without",
+            "deadline": "2026-05-15",
+            "color": [
+                "#e6fae6",
+                "#1a3a20"
+            ],
+            "content": {
+                "text": "Czekać na wiosnę.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-43",
+            "title": "Przeczytać artykuł o architekturze oprogramowania",
+            "is_completed": false,
+            "is_pinned": false,
+            "tags": [
+                "nauka",
+                "architektura"
+            ],
+            "priority": "low",
+            "deadline": null,
+            "color": null,
+            "content": {
+                "text": "Kiedyś tam.",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-44",
+            "title": "Urodziny Mamy",
+            "is_completed": false,
+            "is_pinned": true,
+            "tags": [
+                "rodzina",
+                "święto"
+            ],
+            "priority": "very-high",
+            "deadline": "2026-03-25",
+            "color": [
+                "#fae6e6",
+                "#3a1a1a"
+            ],
+            "content": {
+                "text": "Kupić kwiaty! (Przypięte).",
+                "todos": []
+            }
+        },
+        {
+            "id": "tile-45",
+            "title": "Zrobić podsumowanie tygodnia",
+            "is_completed": true,
+            "is_pinned": false,
+            "tags": [
+                "biznes",
+                "done"
+            ],
+            "priority": "medium",
+            "deadline": "2026-03-08",
+            "color": null,
+            "content": {
+                "text": "Ukończone i zapomniane.",
+                "todos": []
+            }
+        }
+    ]
+}

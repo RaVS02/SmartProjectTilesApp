@@ -6,6 +6,12 @@ from ui import ProjectTileWidget, TileFormDialog
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("green")
 
+
+import math # <--- Upewnij się, że masz to zaimportowane na górze pliku main.py
+
+import math
+
+
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -13,8 +19,23 @@ class SmartProjectTilesApp(ctk.CTk):
         self.geometry(f"{st.WINDOW_WIDTH}x{st.WINDOW_HEIGHT}")
 
         self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=0)
         self.grid_columnconfigure(0, weight=1)
+
+        self.current_page = 1
+        self.items_per_page = 15
+        self.search_timer = None
+
+        # NOWE: Zmienne do łapania rozmiaru okna
+        self.resize_timer = None
+        self.last_width = st.WINDOW_WIDTH
+
+        self.setup_ui()
+
+        # Nasłuchiwanie zmiany rozmiaru GŁÓWNEGO okna
+        self.bind("<Configure>", self.on_window_resize)
 
         self.setup_ui()
 
@@ -22,40 +43,134 @@ class SmartProjectTilesApp(ctk.CTk):
         self.manager = TileManager()
         self.manager.load_from_file()
 
-        # PASEK NARZĘDZI
+        # ==========================================
+        # 1. PASEK NARZĘDZI (Wiersz 0)
+        # ==========================================
         self.toolbar_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.toolbar_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 0))
-        self.toolbar_frame.grid_columnconfigure(0, weight=1)
+        self.toolbar_frame.grid_columnconfigure(1, weight=1)
 
-        self.add_btn = ctk.CTkButton(
-            self.toolbar_frame,
-            text="+ Dodaj Kafelek",
-            font=st.FONT_TITLE,
-            command=self.open_add_dialog
-        )
+        self.add_btn = ctk.CTkButton(self.toolbar_frame, text="+ Dodaj Kafelek", font=st.FONT_TITLE,
+                                     command=self.open_add_dialog)
         self.add_btn.grid(row=0, column=0, sticky="w")
 
-        self.view_switcher = ctk.CTkSegmentedButton(
-            self.toolbar_frame,
-            values=["Lista", "Siatka (2)", "Siatka (3)"],
-            command=self.change_view
+        ctk.CTkLabel(self.toolbar_frame, text="Rozmiar:").grid(row=0, column=1, sticky="e", padx=(0, 10))
+        self.mode_var = ctk.StringVar(value="Pełny")
+        self.mode_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Pełny", "Skrócony"],
+                                                    variable=self.mode_var, command=lambda _: self.draw_tiles())
+        self.mode_switcher.grid(row=0, column=2, sticky="e", padx=(0, 20))
+
+        ctk.CTkLabel(self.toolbar_frame, text="Kolumny:").grid(row=0, column=3, sticky="e", padx=(0, 10))
+        self.col_var = ctk.StringVar(value="3")
+        self.col_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["1", "2", "3", "4", "5"],
+                                                   variable=self.col_var, command=lambda _: self.draw_tiles())
+        self.col_switcher.grid(row=0, column=4, sticky="e", padx=(0, 20))
+
+        ctk.CTkLabel(self.toolbar_frame, text="Motyw:").grid(row=0, column=5, sticky="e", padx=(0, 10))
+        self.theme_var = ctk.StringVar(value="System")
+        self.theme_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Jasny", "Ciemny", "System"],
+                                                     variable=self.theme_var, command=self.change_theme)
+        self.theme_switcher.grid(row=0, column=6, sticky="e")
+
+        # ==========================================
+        # 2. PASEK FILTRÓW I SORTOWANIA (Wiersz 1)
+        # ==========================================
+        self.filter_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.filter_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(10, 0))
+        self.filter_frame.grid_columnconfigure(0, weight=1)
+
+        self.search_var = ctk.StringVar()
+        # ZMIANA: Zamiast odświeżać od razu, wywołujemy funkcję schedule_search
+        self.search_var.trace_add("write", self.schedule_search)
+
+        self.search_entry = ctk.CTkEntry(self.filter_frame, textvariable=self.search_var,
+                                         placeholder_text="🔍 Szukaj po nazwie lub tagu...", width=250)
+        self.search_entry.grid(row=0, column=0, sticky="w")
+
+        ctk.CTkLabel(self.filter_frame, text="Kolory:").grid(row=0, column=1, sticky="e", padx=(0, 10))
+        self.color_style_var = ctk.StringVar(value="Kolorowe Tło")
+        self.color_style_menu = ctk.CTkOptionMenu(
+            self.filter_frame, values=["Kolorowe Tło", "Tylko Ramki", "Minimalistyczny"],
+            variable=self.color_style_var, command=lambda _: self.draw_tiles(), width=130
         )
-        self.view_switcher.set("Lista")
-        self.view_switcher.grid(row=0, column=1, sticky="e")
+        self.color_style_menu.grid(row=0, column=2, sticky="e", padx=(0, 20))
 
-        # RAMKA KAFELKÓW
+        ctk.CTkLabel(self.filter_frame, text="Sortuj:").grid(row=0, column=3, sticky="e", padx=(0, 10))
+        self.sort_var = ctk.StringVar(value="Waga Sumaryczna")
+        self.sort_menu = ctk.CTkOptionMenu(
+            self.filter_frame, values=["Waga Sumaryczna", "Deadline", "Główny Priorytet", "Nazwa (A-Z)", "Tagi (A-Z)"],
+            variable=self.sort_var, command=lambda _: self.draw_tiles(), width=160
+        )
+        self.sort_menu.grid(row=0, column=4, sticky="e")
+
+        self.sort_order_var = ctk.StringVar(value="Rosnąco")
+        self.sort_order_btn = ctk.CTkButton(self.filter_frame, textvariable=self.sort_order_var, width=70,
+                                            command=self.toggle_sort_order)
+        self.sort_order_btn.grid(row=0, column=5, sticky="e", padx=(10, 0))
+
+        # ==========================================
+        # 3. RAMKA KAFELKÓW (Wiersz 2)
+        # ==========================================
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
-        self.scrollable_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=(10, 20))
+        self.scrollable_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=(10, 10))
 
-        self.draw_tiles(columns=1)
+        # ==========================================
+        # 4. PASEK STRONICOWANIA (Wiersz 3)
+        # ==========================================
+        self.pagination_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.pagination_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 15))
+        self.pagination_frame.grid_columnconfigure(1, weight=1)
 
-    def change_view(self, selected_value):
-        if selected_value == "Lista":
-            self.draw_tiles(columns=1)
-        elif selected_value == "Siatka (2)":
-            self.draw_tiles(columns=2)
-        elif selected_value == "Siatka (3)":
-            self.draw_tiles(columns=3)
+        self.prev_btn = ctk.CTkButton(self.pagination_frame, text="< Poprzednia", width=100, command=self.prev_page)
+        self.prev_btn.grid(row=0, column=0, sticky="w")
+
+        self.page_label = ctk.CTkLabel(self.pagination_frame, text="Strona 1 z 1", font=st.FONT_DEFAULT)
+        self.page_label.grid(row=0, column=1, sticky="ew")
+
+        self.next_btn = ctk.CTkButton(self.pagination_frame, text="Następna >", width=100, command=self.next_page)
+        self.next_btn.grid(row=0, column=2, sticky="e")
+
+        self.draw_tiles()
+
+    # --- NOWA FUNKCJA: DEBOUNCING ---
+    def on_window_resize(self, event):
+        """Opóźnione przerysowanie kafelków po zmianie szerokości głównego okna"""
+        if event.widget == self:
+            current_width = self.winfo_width()
+            # Przerysowujemy tylko, gdy rozmiar zmienił się o co najmniej 50px (zero niepotrzebnego migotania)
+            if abs(current_width - self.last_width) > 50:
+                self.last_width = current_width
+                if self.resize_timer:
+                    self.after_cancel(self.resize_timer)
+                self.resize_timer = self.after(100, lambda: self.draw_tiles(reset_page=False))
+    def schedule_search(self, *args):
+        """Opóźnia odświeżanie podczas pisania, zapobiegając migotaniu interfejsu"""
+        if self.search_timer:
+            self.after_cancel(self.search_timer)
+        # Czeka 300ms po ostatnim wciśnięciu klawisza przed narysowaniem
+        self.search_timer = self.after(300, lambda: self.draw_tiles(reset_page=True))
+
+    def change_theme(self, theme_name):
+        if theme_name == "Jasny":
+            ctk.set_appearance_mode("Light")
+        elif theme_name == "Ciemny":
+            ctk.set_appearance_mode("Dark")
+        else:
+            ctk.set_appearance_mode("System")
+
+    def prev_page(self):
+        if self.current_page > 1:
+            self.current_page -= 1
+            self.draw_tiles(reset_page=False)
+
+    def next_page(self):
+        self.current_page += 1
+        self.draw_tiles(reset_page=False)
+
+    def toggle_sort_order(self):
+        current = self.sort_order_var.get()
+        self.sort_order_var.set("Malejąco" if current == "Rosnąco" else "Rosnąco")
+        self.draw_tiles()
 
     def open_add_dialog(self):
         dialog = TileFormDialog(master=self, on_save_callback=self.save_new_tile)
@@ -63,73 +178,123 @@ class SmartProjectTilesApp(ctk.CTk):
     def save_new_tile(self, new_tile_model):
         self.manager.add_tile(new_tile_model)
         self.manager.save_to_file()
-        current_view = self.view_switcher.get()
-        columns = int(current_view[-2]) if "Siatka" in current_view else 1
-        self.draw_tiles(columns=columns)
+        self.draw_tiles(reset_page=True)
 
-    def draw_tiles(self, columns=1):
-        for widget in self.scrollable_frame.winfo_children():
-            widget.destroy()
+    def draw_tiles(self, reset_page=True):
+        if reset_page:
+            self.current_page = 1
 
-        for i in range(10):
-            self.scrollable_frame.grid_columnconfigure(i, weight=0)
+        columns = int(self.col_var.get())
+        is_compact = (self.mode_var.get() == "Skrócony")
+        color_style = self.color_style_var.get()
 
-        for i in range(columns):
-            self.scrollable_frame.grid_columnconfigure(i, weight=1)
+        for widget in self.scrollable_frame.winfo_children(): widget.destroy()
 
-            # ZAAWANSOWANE SORTOWANIE:
-            # 1. x.is_completed (Zrobione na dół)
-            # 2. x.total_weight (Obliczana na żywo Waga Sumaryczna 2-11)
-            sorted_tiles = sorted(
-                self.manager.tiles,
-                key=lambda x: (x.is_completed, x.total_weight)
-            )
+        for i in range(10): self.scrollable_frame.grid_columnconfigure(i, weight=0)
+        for i in range(columns): self.scrollable_frame.grid_columnconfigure(i, weight=1)
 
-        for index, tile_model in enumerate(sorted_tiles):
+        query = self.search_var.get().lower().strip()
+        filtered_tiles = [t for t in self.manager.tiles if
+                          query in t.title.lower() or any(query in tag.lower() for tag in t.tags)]
+
+        sort_mode = self.sort_var.get()
+        is_descending = self.sort_order_var.get() == "Malejąco"
+
+        if sort_mode == "Waga Sumaryczna":
+            filtered_tiles.sort(key=lambda x: x.total_weight, reverse=is_descending)
+        elif sort_mode == "Deadline":
+            filtered_tiles.sort(
+                key=lambda x: x.days_left if x.days_left is not None else (9999 if not is_descending else -9999),
+                reverse=is_descending)
+        elif sort_mode == "Główny Priorytet":
+            filtered_tiles.sort(key=lambda x: st.PRIORITY_RANK.get(x.priority, 5), reverse=is_descending)
+        elif sort_mode == "Nazwa (A-Z)":
+            filtered_tiles.sort(key=lambda x: x.title.lower(), reverse=is_descending)
+        elif sort_mode == "Tagi (A-Z)":
+            filtered_tiles.sort(key=lambda x: x.tags[0].lower() if x.tags else "zzz", reverse=is_descending)
+
+        filtered_tiles.sort(key=lambda x: x.is_pinned, reverse=True)
+        filtered_tiles.sort(key=lambda x: x.is_completed, reverse=False)
+
+        total_pages = max(1, math.ceil(len(filtered_tiles) / self.items_per_page))
+        if self.current_page > total_pages:
+            self.current_page = total_pages
+
+        start_idx = (self.current_page - 1) * self.items_per_page
+        end_idx = start_idx + self.items_per_page
+        limited_tiles = filtered_tiles[start_idx:end_idx]
+
+        self.page_label.configure(text=f"Strona {self.current_page} z {total_pages}")
+        self.prev_btn.configure(state="normal" if self.current_page > 1 else "disabled")
+        self.next_btn.configure(state="normal" if self.current_page < total_pages else "disabled")
+
+        # ==========================================
+        # NOWE: MATEMATYKA SZEROKOŚCI KAFELKA
+        # ==========================================
+        # Pobieramy obecną szerokość okna (lub startową z settings)
+        app_width = self.winfo_width()
+
+        # POPRAWKA 1: Zwiększamy próg do 250px. Przy starcie okno czasem zgłasza np. 200px
+        # zanim Windows/Mac zdąży je rozciągnąć.
+        if app_width < 250:
+            app_width = st.WINDOW_WIDTH
+
+        # Odejmujemy marginesy boczne głównego okna i pasek przewijania (~80px)
+        estimated_tile_width = (app_width - 80) / columns
+
+        # POPRAWKA 2: Zwiększamy margines z 130 na 160 pikseli, żeby dać tytułowi
+        # i ikonom po prawej stronie (pinezka, priorytet) więcej "oddechu".
+        calculated_wrap = max(50, int(estimated_tile_width - 160))
+
+        # ==========================================
+        # RYSOWANIE GOTOWYCH KAFELKÓW
+        # ==========================================
+        for index, tile_model in enumerate(limited_tiles):
             wiersz = index // columns
             kolumna = index % columns
 
             tile_widget = ProjectTileWidget(
                 master=self.scrollable_frame,
                 tile_model=tile_model,
+                is_compact=is_compact,
+                color_style=color_style,
+                title_wrap=calculated_wrap,  # <--- Wstrzykujemy "sztywne ramy" prosto z Twojego pomysłu!
                 save_callback=self.manager.save_to_file,
                 delete_callback=self.delete_tile,
                 complete_callback=self.complete_tile,
                 edit_callback=self.edit_tile,
-                restore_callback=self.restore_tile  # <--- Przekazujemy nową funkcję
+                restore_callback=self.restore_tile,
+                pin_callback=self.pin_tile
             )
             tile_widget.grid(row=wiersz, column=kolumna, padx=10, pady=10, sticky="nsew")
 
+    def pin_tile(self, tile_model):
+        tile_model.is_pinned = not tile_model.is_pinned
+        self.manager.save_to_file()
+        self.draw_tiles(reset_page=False)
+
     def restore_tile(self, tile_model):
-        """Przywraca kafelek do aktywnych projektów i odświeża widok"""
         tile_model.is_completed = False
         self.manager.save_to_file()
-        current_view = self.view_switcher.get()
-        columns = int(current_view[-2]) if "Siatka" in current_view else 1
-        self.draw_tiles(columns=columns)
+        self.draw_tiles(reset_page=False)
 
     def delete_tile(self, tile_model):
         self.manager.tiles.remove(tile_model)
         self.manager.save_to_file()
-        current_view = self.view_switcher.get()
-        columns = int(current_view[-2]) if "Siatka" in current_view else 1
-        self.draw_tiles(columns=columns)
+        self.draw_tiles(reset_page=False)
 
     def complete_tile(self, tile_model):
         tile_model.is_completed = True
+        tile_model.is_pinned = False
         self.manager.save_to_file()
-        current_view = self.view_switcher.get()
-        columns = int(current_view[-2]) if "Siatka" in current_view else 1
-        self.draw_tiles(columns=columns)
+        self.draw_tiles(reset_page=False)
 
     def edit_tile(self, tile_model):
         dialog = TileFormDialog(master=self, on_save_callback=self.update_existing_tile, existing_tile=tile_model)
 
     def update_existing_tile(self, updated_model):
         self.manager.save_to_file()
-        current_view = self.view_switcher.get()
-        columns = int(current_view[-2]) if "Siatka" in current_view else 1
-        self.draw_tiles(columns=columns)
+        self.draw_tiles(reset_page=False)
 
 if __name__ == "__main__":
     app = SmartProjectTilesApp()

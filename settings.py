@@ -2,8 +2,8 @@
 
 # --- USTAWIENIA OKNA GŁÓWNEGO ---
 WINDOW_TITLE = "Smart Project Tiles - Manager and Workflow"
-WINDOW_WIDTH = 1000
-WINDOW_HEIGHT = 700
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
 
 # --- PALETA KOLORÓW ---
 # Format dla CustomTkinter: ("Kolor_Jasny_Motyw", "Kolor_Ciemny_Motyw")
@@ -67,4 +67,15 @@ SUMMATIVE_COLORS = {
     9: ("#66ff00", "#52cc00"),
     10: ("#33ff00", "#29cc00"),
     11: ("#00ff00", "#00cc00") # Zupełnie na luzie
+}
+# --- NIESTANDARDOWE KOLORY KAFELKÓW (Z delikatną przezroczystością / Pastelowe) ---
+# Format: "Nazwa": ("Kolor_Jasny_Motyw", "Kolor_Ciemny_Motyw")
+CUSTOM_TILE_COLORS = {
+    "Domyślny": None,
+    "Błękitny (Delikatny)": ("#e6f0fa", "#1a2a3a"),
+    "Miętowy (Delikatny)": ("#e6fae6", "#1a3a20"),
+    "Różowy (Delikatny)": ("#fae6e6", "#3a1a1a"),
+    "Lawendowy (Delikatny)": ("#f0e6fa", "#2a1a3a"),
+    "Słoneczny (Delikatny)": ("#fafae6", "#3a3a1a"),
+    "Brzoskwiniowy (Delikatny)": ("#faefe6", "#3a2a1a")
 }
