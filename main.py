@@ -9,6 +9,7 @@ import uuid
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("green")
 
+# --- ZMIENNE GLOBALNE ---
 GRID_SIZE = 20
 
 
@@ -31,7 +32,7 @@ class NodeEditDialog(ctk.CTkToplevel):
     def __init__(self, master, node, on_save_callback, on_duplicate_callback, **kwargs):
         super().__init__(master, **kwargs)
         self.title("Właściwości Elementu")
-        self.geometry("400x650")  # Powiększono, aby zmieścić pole wieloliniowe
+        self.geometry("400x650")
         self.node = node
         self.on_save_callback = on_save_callback
         self.on_duplicate_callback = on_duplicate_callback
@@ -43,14 +44,12 @@ class NodeEditDialog(ctk.CTkToplevel):
         self.header_var = ctk.StringVar(value=node.header)
         ctk.CTkEntry(self, textvariable=self.header_var, width=280).pack(pady=5)
 
-        # ZMIANA: Zmiana na TextBox wspierający wiele linii (Enter)
         ctk.CTkLabel(self, text="Tekst główny (obsługuje wiele linii):").pack(pady=(10, 0))
         self.text_box = ctk.CTkTextbox(self, width=280, height=80)
         self.text_box.pack(pady=5)
         self.text_box.insert("0.0", node.text)
 
         ctk.CTkLabel(self, text="Kształt bloku:").pack(pady=(10, 0))
-        # ZMIANA: Dodano Równoległobok do listy kształtów
         self.shapes = {
             "Prostokąt zaokrąglony": "rect",
             "Romb (Decyzja)": "diamond",
@@ -91,7 +90,7 @@ class NodeEditDialog(ctk.CTkToplevel):
                       command=self.duplicate_data, width=100).pack(side="left", padx=5)
 
     def save_data(self):
-        new_text = self.text_box.get("0.0", "end").strip()  # Pobranie tekstu z TextBoxa
+        new_text = self.text_box.get("0.0", "end").strip()
         new_header = self.header_var.get()
         new_shape = self.shapes.get(self.shape_var.get())
         new_color = self.colors.get(self.color_var.get())
@@ -196,14 +195,13 @@ class CanvasNode:
         x1, y1 = sx - sw / 2, sy - sh / 2
         x2, y2 = sx + sw / 2, sy + sh / 2
 
-        # LOGIKA KSZTAŁTÓW
         if self.shape == "oval":
             self.bg_id = self.canvas.create_oval(x1, y1, x2, y2, width=max(1, int(2 * z)), tags=("node", self.id))
         elif self.shape == "diamond":
             pts = [sx, y1, x2, sy, sx, y2, x1, sy]
             self.bg_id = self.canvas.create_polygon(pts, width=max(1, int(2 * z)), tags=("node", self.id))
-        elif self.shape == "parallelogram":  # ZMIANA: Rysowanie Równoległoboku (Wejście/Wyjście)
-            offset = sw * 0.15  # Przesunięcie ścian bocznych
+        elif self.shape == "parallelogram":
+            offset = sw * 0.15
             pts = [x1 + offset, y1, x2, y1, x2 - offset, y2, x1, y2]
             self.bg_id = self.canvas.create_polygon(pts, width=max(1, int(2 * z)), tags=("node", self.id))
         else:
@@ -276,8 +274,10 @@ class CanvasNode:
         }
 
 
+# --- ZMIANA: Klasa Edge z obsługą zginania linii (Waypoints) ---
 class CanvasEdge:
-    def __init__(self, wf, source_node, target_node, edge_id=None, direction="last", color="#888888", dashed=False):
+    def __init__(self, wf, source_node, target_node, edge_id=None, direction="last", color="#888888", dashed=False,
+                 waypoints=None):
         self.wf = wf
         self.canvas = wf.canvas
         self.id = edge_id if edge_id else str(uuid.uuid4())
@@ -287,8 +287,12 @@ class CanvasEdge:
         self.color = color
         self.dashed = dashed
 
+        # Punkty łamania linii trzymane jako lista list: [[x, y], [x, y]]
+        self.waypoints = waypoints if waypoints else []
+
         self.arrow_map = {"last": tk.LAST, "first": tk.FIRST, "both": tk.BOTH, "none": tk.NONE}
         self.line_id = None
+        self.handle_ids = []  # Kółeczka na zakrętach
         self.draw()
 
     def get_edge_point(self, node, target_x, target_y):
@@ -315,31 +319,85 @@ class CanvasEdge:
         x_edge = y_edge / slope
         return node.x + x_edge, node.y + y_edge
 
+    def get_closest_segment_index(self, px, py):
+        """Matematyka do znajdowania miejsca, w którym kliknęliśmy linię (aby dodać nowy zakręt)"""
+        if not self.waypoints: return 0
+
+        pts = [[self.source.x, self.source.y]] + self.waypoints + [[self.target.x, self.target.y]]
+        min_dist = float('inf')
+        best_idx = 0
+        for i in range(len(pts) - 1):
+            x1, y1 = pts[i]
+            x2, y2 = pts[i + 1]
+            l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2
+            if l2 == 0:
+                dist = math.hypot(px - x1, py - y1)
+            else:
+                t = max(0, min(1, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2))
+                proj_x = x1 + t * (x2 - x1)
+                proj_y = y1 + t * (y2 - y1)
+                dist = math.hypot(px - proj_x, py - proj_y)
+            if dist < min_dist:
+                min_dist = dist
+                best_idx = i
+        return best_idx
+
     def draw(self):
         if self.line_id: self.canvas.delete(self.line_id)
+        for hid in self.handle_ids: self.canvas.delete(hid)
+        self.handle_ids = []
 
         z = self.wf.zoom
         dash_pattern = (int(5 * z), int(5 * z)) if self.dashed else None
         aw, ah1, ah2 = max(8, int(20 * z)), max(10, int(24 * z)), max(4, int(8 * z))
 
+        # Tworzymy "pustą" linię, która zaraz otrzyma precyzyjne koordynaty
         self.line_id = self.canvas.create_line(
-            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0,
             arrow=self.arrow_map.get(self.direction, tk.LAST),
             arrowshape=(aw, ah1, ah2), width=max(1, int(3 * z)), fill=self.color,
             joinstyle=tk.MITER, dash=dash_pattern, tags=("edge", self.id)
         )
         self.canvas.tag_lower(self.line_id)
+
+        # Tworzymy uchwyty dla punktów kontrolnych
+        for i in range(len(self.waypoints)):
+            hid = self.canvas.create_oval(0, 0, 0, 0, fill="yellow", outline="#333", width=2,
+                                          tags=("waypoint", self.id, str(i)))
+            self.handle_ids.append(hid)
+
         self.update_position()
 
     def update_position(self):
         z = self.wf.zoom
-        x1, y1 = self.get_edge_point(self.source, self.target.x, self.target.y)
-        x4, y4 = self.get_edge_point(self.target, self.source.x, self.source.y)
-        mid_x = snap((x1 + x4) / 2)
+        coords = []
 
-        self.canvas.coords(self.line_id, x1 * z, y1 * z, mid_x * z, y1 * z, mid_x * z, y4 * z, x4 * z, y4 * z)
+        if not self.waypoints:
+            # Domyślne łączenie (kształt Z)
+            x1, y1 = self.get_edge_point(self.source, self.target.x, self.target.y)
+            x4, y4 = self.get_edge_point(self.target, self.source.x, self.source.y)
+            mid_x = snap((x1 + x4) / 2)
+            coords = [x1 * z, y1 * z, mid_x * z, y1 * z, mid_x * z, y4 * z, x4 * z, y4 * z]
+        else:
+            # Połączenie po zdefiniowanych przez użytkownika punktach (Waypoints)
+            x1, y1 = self.get_edge_point(self.source, self.waypoints[0][0], self.waypoints[0][1])
+            x2, y2 = self.get_edge_point(self.target, self.waypoints[-1][0], self.waypoints[-1][1])
+
+            coords.extend([x1 * z, y1 * z])
+            for wp in self.waypoints:
+                coords.extend([wp[0] * z, wp[1] * z])
+            coords.extend([x2 * z, y2 * z])
+
+        self.canvas.coords(self.line_id, *coords)
         self.canvas.tag_lower(self.line_id)
         self.canvas.tag_raise(self.line_id, "grid")
+
+        # Aktualizacja żółtych uchwytów
+        for i, wp in enumerate(self.waypoints):
+            hx, hy = wp[0] * z, wp[1] * z
+            r = max(3, int(5 * z))
+            self.canvas.coords(self.handle_ids[i], hx - r, hy - r, hx + r, hy + r)
+            self.canvas.tag_raise(self.handle_ids[i])
 
     def update_properties(self, direction, color, dashed):
         self.direction = direction
@@ -349,10 +407,14 @@ class CanvasEdge:
 
     def destroy(self):
         self.canvas.delete(self.line_id)
+        for hid in self.handle_ids: self.canvas.delete(hid)
 
     def to_dict(self):
-        return {"id": self.id, "source": self.source.id, "target": self.target.id, "direction": self.direction,
-                "color": self.color, "dashed": self.dashed}
+        return {
+            "id": self.id, "source": self.source.id, "target": self.target.id,
+            "direction": self.direction, "color": self.color, "dashed": self.dashed,
+            "waypoints": self.waypoints
+        }
 
 
 class WorkflowCanvasFrame(ctk.CTkFrame):
@@ -370,6 +432,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.resizing_node = None
         self.edge_start_node = None
         self.temp_line = None
+        self.dragged_waypoint = None  # NOWE: Do przesuwania zakrętów
 
         self.pan_start_x = 0
         self.pan_start_y = 0
@@ -401,6 +464,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             ("🔲 Dodaj Blok", "add_block"),
             ("📝 Dodaj Notatkę", "add_note"),
             ("↗️ Połącz", "add_edge"),
+            ("🪢 Wyginaj Linie", "bend"),  # NOWE NARZĘDZIE
             ("❌ Usuń element", "delete")
         ]
 
@@ -409,9 +473,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 self.toolbar, text=text, variable=self.current_mode, value=mode,
                 font=("Helvetica", 13), command=self.on_tool_changed
             )
-            rb.pack(anchor="w", padx=15, pady=12)
+            rb.pack(anchor="w", padx=15, pady=8)
 
-        # PANEL ZOOMU
         zoom_frame = ctk.CTkFrame(self.toolbar, fg_color="transparent")
         zoom_frame.pack(side="bottom", pady=(5, 10))
         ctk.CTkButton(zoom_frame, text="-", width=30, command=self.zoom_out).pack(side="left", padx=2)
@@ -419,11 +482,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.zoom_lbl.pack(side="left", padx=2)
         ctk.CTkButton(zoom_frame, text="+", width=30, command=self.zoom_in).pack(side="left", padx=2)
 
-        # ZMIANA: Przycisk resetowania widoku
         ctk.CTkButton(self.toolbar, text="🏠 Zresetuj Widok", width=120, command=self.reset_view).pack(side="bottom",
                                                                                                       pady=10)
-
-        # ZMIANA: Tracker współrzędnych
         self.coord_lbl = ctk.CTkLabel(self.toolbar, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 10))
         self.coord_lbl.pack(side="bottom", pady=5)
 
@@ -440,7 +500,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         self.canvas.bind("<Double-Button-1>", self.on_double_click)
-        self.canvas.bind("<Motion>", self.on_mouse_move)  # ZMIANA: Tracker myszy
+        self.canvas.bind("<Motion>", self.on_mouse_move)
 
         self.canvas.bind("<ButtonPress-2>", self.start_pan)
         self.canvas.bind("<B2-Motion>", self.do_pan)
@@ -464,7 +524,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.draw_grid()
 
     def initial_center(self):
-        # Obliczenie idealnego wyśrodkowania (punkt 0,0) względem aktualnego rozmiaru okna
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
         frac_x = (10000 - w / 2) / 20000 if w > 0 else 0.48
@@ -473,7 +532,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.canvas.yview_moveto(frac_y)
 
     def reset_view(self):
-        """Ustawia Zoom na 100% i centruje do 0,0"""
         self.set_zoom(1.0)
         self.initial_center()
 
@@ -490,7 +548,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.on_tool_changed()
 
     def on_mouse_move(self, event):
-        """Aktualizuje wskaźnik koordynatów na żywo"""
         logical_x = int(self.canvas.canvasx(event.x) / self.zoom)
         logical_y = int(self.canvas.canvasy(event.y) / self.zoom)
         self.coord_lbl.configure(text=f"X: {logical_x} | Y: {logical_y}")
@@ -524,6 +581,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             self.canvas.configure(cursor="plus")
         elif mode == "pan":
             self.canvas.configure(cursor="hand2")
+        elif mode == "bend":
+            self.canvas.configure(cursor="pencil")  # Kursor modyfikacji linii
         else:
             self.canvas.configure(cursor="arrow")
 
@@ -535,7 +594,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         logical_x = self.canvas.canvasx(event.x) / self.zoom
         logical_y = self.canvas.canvasy(event.y) / self.zoom
-
         item = self.canvas.find_withtag("current")
 
         if mode in ["add_block", "add_note"]:
@@ -549,12 +607,17 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         elif mode == "move":
             clicked_node_id = None
             clicked_handle_id = None
+
             if item:
                 tags = self.canvas.gettags(item[0])
                 if "node" in tags and len(tags) > 1:
                     clicked_node_id = tags[1]
                 elif "handle" in tags and len(tags) > 1:
                     clicked_handle_id = tags[1]
+                # Złapanie punktu kontrolnego linii
+                elif "waypoint" in tags and len(tags) > 2:
+                    edge_id, wp_idx = tags[1], int(tags[2])
+                    self.dragged_waypoint = (self.edges.get(edge_id), wp_idx)
 
             for n in self.nodes.values():
                 n.set_selected(n.id == clicked_node_id or n.id == clicked_handle_id)
@@ -563,6 +626,26 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 self.resizing_node = self.nodes.get(clicked_handle_id)
             elif clicked_node_id:
                 self.dragged_node = self.nodes.get(clicked_node_id)
+
+        elif mode == "bend" and item:
+            tags = self.canvas.gettags(item[0])
+            # 1. Usunięcie istniejącego zakrętu (jeśli kliknęliśmy w żółtą kropkę)
+            if "waypoint" in tags and len(tags) > 2:
+                edge_id, wp_idx = tags[1], int(tags[2])
+                edge = self.edges.get(edge_id)
+                if edge:
+                    edge.waypoints.pop(wp_idx)
+                    edge.draw()
+                    self.save_workflow()
+            # 2. Dodanie nowego zakrętu na linii (jeśli kliknęliśmy w szarą linię)
+            elif "edge" in tags and len(tags) > 1:
+                edge_id = tags[1]
+                edge = self.edges.get(edge_id)
+                if edge:
+                    insert_idx = edge.get_closest_segment_index(logical_x, logical_y)
+                    edge.waypoints.insert(insert_idx, [snap(logical_x), snap(logical_y)])
+                    edge.draw()
+                    self.save_workflow()
 
         elif mode == "add_edge" and item:
             tags = self.canvas.gettags(item[0])
@@ -604,7 +687,13 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         logical_y = self.canvas.canvasy(event.y) / self.zoom
 
         if mode == "move":
-            if self.resizing_node:
+            # Przesuwanie zakrętu na linii
+            if getattr(self, "dragged_waypoint", None):
+                edge, wp_idx = self.dragged_waypoint
+                edge.waypoints[wp_idx] = [snap(logical_x), snap(logical_y)]
+                edge.update_position()
+
+            elif self.resizing_node:
                 new_w = snap((logical_x - self.resizing_node.x) * 2)
                 new_h = snap((logical_y - self.resizing_node.y) * 2)
                 self.resizing_node.resize(new_w, new_h)
@@ -649,6 +738,11 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         self.dragged_node = None
         self.resizing_node = None
+
+        # Jeśli upuszczono punkt zakrętu, warto zapisać stan do pliku JSON
+        if getattr(self, "dragged_waypoint", None):
+            self.dragged_waypoint = None
+            self.save_workflow()
 
     def on_double_click(self, event):
         item = self.canvas.find_withtag("current")
@@ -705,7 +799,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 edge = CanvasEdge(
                     self, source_node, target_node,
                     edge_id=ed["id"], direction=ed.get("direction", "last"),
-                    color=ed.get("color", "#888888"), dashed=ed.get("dashed", False)
+                    color=ed.get("color", "#888888"), dashed=ed.get("dashed", False),
+                    waypoints=ed.get("waypoints", [])  # <--- Wczytywanie punktów łamania
                 )
                 self.edges[edge.id] = edge
 

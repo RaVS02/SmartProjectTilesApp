@@ -2,7 +2,7 @@
     "preferences": {
         "mode": "Pełny",
         "columns": "1",
-        "theme": "Jasny",
+        "theme": "Ciemny",
         "color_style": "Tylko Ramki",
         "sort_by": "Waga Sumaryczna",
         "sort_order": "Rosnąco"
@@ -39,6 +39,18 @@
                         "color": null,
                         "width": 160,
                         "height": 80
+                    },
+                    {
+                        "id": "f0a011da-7c6e-42a4-ba6b-c23d4786ee3d",
+                        "x": 300,
+                        "y": -180,
+                        "text": "1\ng\ng99\n9\n9",
+                        "header": "Typ",
+                        "type": "note",
+                        "shape": "rect",
+                        "color": null,
+                        "width": 160,
+                        "height": 160
                     }
                 ],
                 "edges": [
@@ -48,7 +60,35 @@
                         "target": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
                         "direction": "last",
                         "color": "#888888",
-                        "dashed": false
+                        "dashed": false,
+                        "waypoints": [
+                            [
+                                20,
+                                -260
+                            ],
+                            [
+                                100,
+                                -260
+                            ]
+                        ]
+                    },
+                    {
+                        "id": "c3292b67-fcd9-499b-985d-defe80f267c5",
+                        "source": "6de28fbd-160f-4afa-990d-859d926592b3",
+                        "target": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [
+                            [
+                                -200,
+                                100
+                            ],
+                            [
+                                100,
+                                100
+                            ]
+                        ]
                     }
                 ]
             },
