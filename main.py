@@ -6,6 +6,7 @@ from ui import ProjectTileWidget
 from ui_dialogs import TileFormDialog
 from ui_workflow import WorkflowCanvasFrame
 from ui_calendar import CalendarView
+from ui_statistics import StatisticsView  # <--- IMPORT NOWEGO WIDOKU
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("green")
@@ -38,6 +39,7 @@ class SmartProjectTilesApp(ctk.CTk):
     def setup_ui(self):
         self.change_theme(self.manager.preferences.get("theme", "System"), save=False)
 
+        # 1. PASEK NARZĘDZI
         self.toolbar_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.toolbar_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 0))
         self.toolbar_frame.grid_columnconfigure(2, weight=1)
@@ -47,7 +49,9 @@ class SmartProjectTilesApp(ctk.CTk):
         self.add_btn.grid(row=0, column=0, sticky="w")
 
         self.main_view_var = ctk.StringVar(value="Tablica")
-        self.main_view_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Tablica", "Kalendarz"],
+        # ZMIANA: Trzy zakładki!
+        self.main_view_switcher = ctk.CTkSegmentedButton(self.toolbar_frame,
+                                                         values=["Tablica", "Kalendarz", "Statystyki"],
                                                          variable=self.main_view_var, command=self.switch_main_view,
                                                          font=("Helvetica", 14, "bold"))
         self.main_view_switcher.grid(row=0, column=1, sticky="w", padx=(20, 0))
@@ -82,6 +86,7 @@ class SmartProjectTilesApp(ctk.CTk):
                                       fg_color="#1f538d")
         self.help_btn.grid(row=0, column=8, sticky="e", padx=(10, 0))
 
+        # 2. PASEK FILTRÓW
         self.filter_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.filter_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(10, 0))
 
@@ -122,27 +127,32 @@ class SmartProjectTilesApp(ctk.CTk):
         ctk.CTkLabel(row2, text="Status:").pack(side="left", padx=(0, 5))
         self.filter_status_var = ctk.StringVar(value=self.manager.preferences.get("filter_status", "Wszystkie"))
         ctk.CTkOptionMenu(row2, values=["Wszystkie", "Tylko Aktywne", "Tylko Ukończone"],
-                          variable=self.filter_status_var, command=self.on_preference_change, width=130).pack(
-            side="left", padx=(0, 20))
+                          variable=self.filter_status_var, command=self.on_preference_change, width=110).pack(
+            side="left", padx=(0, 15))
 
         ctk.CTkLabel(row2, text="Workflow:").pack(side="left", padx=(0, 5))
         self.filter_wf_var = ctk.StringVar(value=self.manager.preferences.get("filter_wf", "Wszystkie"))
         ctk.CTkOptionMenu(row2, values=["Wszystkie", "Z Workflow", "Bez Workflow"], variable=self.filter_wf_var,
-                          command=self.on_preference_change, width=130).pack(side="left", padx=(0, 20))
+                          command=self.on_preference_change, width=110).pack(side="left", padx=(0, 15))
+
+        # ZMIANA: NOWY FILTR ZADAŃ
+        ctk.CTkLabel(row2, text="Zadania:").pack(side="left", padx=(0, 5))
+        self.filter_tasks_var = ctk.StringVar(value=self.manager.preferences.get("filter_tasks", "Wszystkie"))
+        ctk.CTkOptionMenu(row2, values=["Wszystkie", "Z zadaniami", "Bez zadań"], variable=self.filter_tasks_var,
+                          command=self.on_preference_change, width=110).pack(side="left", padx=(0, 15))
 
         self.filter_no_deadline_var = ctk.BooleanVar(value=self.manager.preferences.get("filter_no_deadline", False))
         ctk.CTkCheckBox(row2, text="Ukryj bez terminu", variable=self.filter_no_deadline_var,
-                        command=self.on_preference_change).pack(side="left", padx=(0, 15))
+                        command=self.on_preference_change).pack(side="left", padx=(0, 10))
 
         self.filter_overdue_var = ctk.BooleanVar(value=self.manager.preferences.get("filter_overdue", False))
         ctk.CTkCheckBox(row2, text="Ukryj po terminie", variable=self.filter_overdue_var,
                         command=self.on_preference_change).pack(side="left")
 
-        # --- ZMIANA: PRZYCISK KOSZA (ARCHIWUM) ---
         self.filter_archive_var = ctk.BooleanVar(value=False)
         self.archive_cb = ctk.CTkCheckBox(row2, text="🗑️ Pokaż Kosz", variable=self.filter_archive_var,
                                           command=self.on_preference_change, fg_color="#8b0000")
-        self.archive_cb.pack(side="right", padx=(15, 0))
+        self.archive_cb.pack(side="right", padx=(10, 0))
 
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
         self.scrollable_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=(10, 10))
@@ -160,41 +170,63 @@ class SmartProjectTilesApp(ctk.CTk):
 
         self.calendar_view = CalendarView(self, self.manager, on_update_callback=self.refresh_all_views,
                                           edit_callback=self.edit_tile)
+        self.stats_view = StatisticsView(self, self.manager)  # <--- ZAINICJOWANIE STATYSTYK
 
         self.draw_tiles()
 
     def show_main_help(self):
         from ui_dialogs import HelpDialog
-        ctx = "calendar" if self.main_view_var.get() == "Kalendarz" else "main"
+
+        # Zmiana logiki pomocy dla nowego widoku
+        view = self.main_view_var.get()
+        if view == "Kalendarz":
+            ctx = "calendar"
+        elif view == "Statystyki":
+            ctx = "statistics"
+        else:
+            ctx = "main"
+
         HelpDialog(self, context=ctx)
 
     def switch_main_view(self, choice):
+        # 1. Chowamy wszystkie widoki
+        if hasattr(self, "calendar_view"): self.calendar_view.grid_remove()
+        if hasattr(self, "stats_view"): self.stats_view.grid_remove()
+        self.filter_frame.grid_remove()
+        self.scrollable_frame.grid_remove()
+        self.pagination_frame.grid_remove()
+
+        self.cal_color_lbl.grid_remove()
+        self.cal_color_switcher.grid_remove()
+        self.col_lbl.grid_remove()
+        self.col_switcher.grid_remove()
+        self.mode_switcher.configure(state="disabled")
+
+        # 2. Pokazujemy właściwy
         if choice == "Tablica":
-            self.cal_color_lbl.grid_remove()
-            self.cal_color_switcher.grid_remove()
+            self.mode_switcher.configure(state="normal")
             self.col_lbl.grid(row=0, column=4, sticky="e", padx=(0, 10))
             self.col_switcher.grid(row=0, column=5, sticky="e", padx=(0, 20))
-
-            if hasattr(self, "calendar_view"): self.calendar_view.grid_remove()
             self.filter_frame.grid()
             self.scrollable_frame.grid()
             self.pagination_frame.grid()
             self.draw_tiles(reset_page=False)
-        else:
-            self.col_lbl.grid_remove()
-            self.col_switcher.grid_remove()
+
+        elif choice == "Kalendarz":
+            self.mode_switcher.configure(state="normal")
             self.cal_color_lbl.grid(row=0, column=4, sticky="e", padx=(0, 10))
             self.cal_color_switcher.grid(row=0, column=5, sticky="e", padx=(0, 20))
-
-            self.filter_frame.grid_remove()
-            self.scrollable_frame.grid_remove()
-            self.pagination_frame.grid_remove()
-
             self.calendar_view.grid(row=1, column=0, rowspan=3, sticky="nsew", padx=20, pady=(10, 20))
             self.calendar_view.refresh_data()
 
+        elif choice == "Statystyki":
+            # Statystyki są pełnoekranowe i proste
+            self.stats_view.grid(row=1, column=0, rowspan=3, sticky="nsew", padx=20, pady=20)
+            self.stats_view.refresh_data()
+
     def refresh_all_views(self):
         self.draw_tiles(reset_page=False)
+        if hasattr(self, "stats_view"): self.stats_view.refresh_data()
 
     def on_window_resize(self, event):
         if event.widget == self:
@@ -217,15 +249,17 @@ class SmartProjectTilesApp(ctk.CTk):
         self.manager.preferences["sort_order"] = self.sort_order_var.get()
         self.manager.preferences["filter_status"] = self.filter_status_var.get()
         self.manager.preferences["filter_wf"] = self.filter_wf_var.get()
+        self.manager.preferences["filter_tasks"] = self.filter_tasks_var.get()  # <--- Zapis filtru zadań
         self.manager.preferences["filter_no_deadline"] = self.filter_no_deadline_var.get()
         self.manager.preferences["filter_overdue"] = self.filter_overdue_var.get()
         self.manager.save_to_file()
 
     def on_preference_change(self, *args):
         self.save_current_preferences()
-        if self.main_view_var.get() == "Tablica":
+        view = self.main_view_var.get()
+        if view == "Tablica":
             self.draw_tiles()
-        else:
+        elif view == "Kalendarz":
             if hasattr(self, "calendar_view"): self.calendar_view.refresh_data()
 
     def change_theme(self, theme_name, save=True):
@@ -257,7 +291,7 @@ class SmartProjectTilesApp(ctk.CTk):
     def save_new_tile(self, new_tile_model):
         self.manager.add_tile(new_tile_model)
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=True)
+        self.refresh_all_views()
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def draw_tiles(self, reset_page=True):
@@ -270,17 +304,12 @@ class SmartProjectTilesApp(ctk.CTk):
         for i in range(10): self.scrollable_frame.grid_columnconfigure(i, weight=0)
         for i in range(columns): self.scrollable_frame.grid_columnconfigure(i, weight=1)
 
-        # --- ZMIANA: FILTROWANIE ARCHIWUM ---
         show_archive = self.filter_archive_var.get()
-
         if show_archive:
-            # Pokaż TYLKO usunięte kafelki
             filtered_tiles = [t for t in self.manager.tiles if getattr(t, "is_archived", False)]
         else:
-            # Pokaż tylko NIEUSUNIĘTE kafelki
             filtered_tiles = [t for t in self.manager.tiles if not getattr(t, "is_archived", False)]
 
-        # Zastosuj resztę filtrów (tylko do wybranych wyżej kafelków)
         query = self.search_var.get().lower().strip()
         filtered_tiles = [t for t in filtered_tiles if
                           query in t.title.lower() or any(query in tag.lower() for tag in t.tags)]
@@ -296,6 +325,13 @@ class SmartProjectTilesApp(ctk.CTk):
             filtered_tiles = [t for t in filtered_tiles if t.has_workflow]
         elif wf_f == "Bez Workflow":
             filtered_tiles = [t for t in filtered_tiles if not t.has_workflow]
+
+        # --- ZMIANA: Filtr Zadań (To-Do) ---
+        tasks_f = self.filter_tasks_var.get()
+        if tasks_f == "Z zadaniami":
+            filtered_tiles = [t for t in filtered_tiles if len(t.content.get("todos", [])) > 0]
+        elif tasks_f == "Bez zadań":
+            filtered_tiles = [t for t in filtered_tiles if len(t.content.get("todos", [])) == 0]
 
         if self.filter_no_deadline_var.get(): filtered_tiles = [t for t in filtered_tiles if t.deadline]
         if self.filter_overdue_var.get(): filtered_tiles = [t for t in filtered_tiles if
@@ -346,10 +382,10 @@ class SmartProjectTilesApp(ctk.CTk):
                 is_compact=is_compact,
                 color_style=color_style,
                 title_wrap=calculated_wrap,
-                save_callback=self.manager.save_to_file,
-                archive_callback=self.archive_tile,  # <--- Dodane do Kosza
-                recover_callback=self.recover_tile,  # <--- Dodane do Kosza
-                permadelete_callback=self.permadelete_tile,  # <--- Dodane do Kosza
+                save_callback=self.save_and_refresh,
+                archive_callback=self.archive_tile,
+                recover_callback=self.recover_tile,
+                permadelete_callback=self.permadelete_tile,
                 complete_callback=self.complete_tile,
                 edit_callback=self.edit_tile,
                 restore_callback=self.restore_tile,
@@ -358,29 +394,31 @@ class SmartProjectTilesApp(ctk.CTk):
             )
             tile_widget.grid(row=wiersz, column=kolumna, padx=10, pady=10, sticky="nsew")
 
-    # --- NOWE FUNKCJE OBSŁUGI KOSZA ---
+    def save_and_refresh(self):
+        """Zapisuje plik i aktualizuje wykresy statystyk bez przeładowywania kafelków (dla progress barów)"""
+        self.manager.save_to_file()
+        if hasattr(self, "stats_view"): self.stats_view.refresh_data()
+
     def archive_tile(self, tile_model):
         tile_model.is_archived = True
         tile_model.is_pinned = False
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
+        self.refresh_all_views()
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def recover_tile(self, tile_model):
         tile_model.is_archived = False
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
+        self.refresh_all_views()
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def permadelete_tile(self, tile_model):
         from tkinter import messagebox
-        if tk.messagebox.askyesno("Potwierdź", f"Czy na pewno chcesz bezpowrotnie usunąć: {tile_model.title}?"):
+        if messagebox.askyesno("Potwierdź", f"Czy na pewno chcesz bezpowrotnie usunąć: {tile_model.title}?"):
             self.manager.tiles.remove(tile_model)
             self.manager.save_to_file()
-            self.draw_tiles(reset_page=False)
+            self.refresh_all_views()
             if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
-
-    # ----------------------------------
 
     def pin_tile(self, tile_model):
         tile_model.is_pinned = not tile_model.is_pinned
@@ -390,14 +428,14 @@ class SmartProjectTilesApp(ctk.CTk):
     def restore_tile(self, tile_model):
         tile_model.is_completed = False
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
+        self.refresh_all_views()
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def complete_tile(self, tile_model):
         tile_model.is_completed = True
         tile_model.is_pinned = False
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
+        self.refresh_all_views()
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def edit_tile(self, tile_model):
@@ -405,7 +443,7 @@ class SmartProjectTilesApp(ctk.CTk):
 
     def update_existing_tile(self, updated_model):
         self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
+        self.refresh_all_views()
         if hasattr(self, "calendar_view") and self.main_view_var.get() == "Kalendarz":
             self.calendar_view.refresh_data()
 
@@ -415,6 +453,7 @@ class SmartProjectTilesApp(ctk.CTk):
         self.scrollable_frame.grid_remove()
         self.pagination_frame.grid_remove()
         if hasattr(self, "calendar_view"): self.calendar_view.grid_remove()
+        if hasattr(self, "stats_view"): self.stats_view.grid_remove()
 
         self.workflow_view = WorkflowCanvasFrame(master=self, tile_model=tile_model,
                                                  close_callback=self.close_workflow_view, manager=self.manager)
@@ -423,14 +462,19 @@ class SmartProjectTilesApp(ctk.CTk):
     def close_workflow_view(self):
         self.workflow_view.destroy()
         self.toolbar_frame.grid()
-        if self.main_view_var.get() == "Tablica":
+
+        view = self.main_view_var.get()
+        if view == "Tablica":
             self.filter_frame.grid()
             self.scrollable_frame.grid()
             self.pagination_frame.grid()
             self.draw_tiles(reset_page=False)
-        else:
+        elif view == "Kalendarz":
             self.calendar_view.grid(row=1, column=0, rowspan=3, sticky="nsew", padx=20, pady=(10, 20))
             self.calendar_view.refresh_data()
+        elif view == "Statystyki":
+            self.stats_view.grid(row=1, column=0, rowspan=3, sticky="nsew", padx=20, pady=20)
+            self.stats_view.refresh_data()
 
 
 if __name__ == "__main__":

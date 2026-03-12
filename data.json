@@ -9,7 +9,8 @@
         "filter_status": "Wszystkie",
         "filter_wf": "Wszystkie",
         "filter_no_deadline": false,
-        "filter_overdue": false
+        "filter_overdue": false,
+        "filter_tasks": "Z zadaniami"
     },
     "project_tiles": [
         {

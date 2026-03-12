@@ -561,7 +561,6 @@ class HelpDialog(ctk.CTkToplevel):
         textbox = ctk.CTkTextbox(self, wrap="word", font=("Helvetica", 13))
         textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
-        # Wczytanie odpowiedniego tekstu na podstawie kontekstu
         if context == "main":
             text = (
                 "🎯 GŁÓWNA TABLICA KAFELKÓW\n\n"
@@ -596,10 +595,19 @@ class HelpDialog(ctk.CTkToplevel):
                 "• Ctrl + Klik myszą : Dodawanie/usuwanie pojedynczych klocków z zaznaczenia.\n"
                 "• Ctrl + Rolka myszy : Przybliżanie i oddalanie (Zoom)."
             )
+        # --- ZMIANA: Dodany przypadek statystyk ---
+        elif context == "statistics":
+            text = (
+                "📊 STATYSTYKI I DASHBOARD\n\n"
+                "Menedżerskie podsumowanie Twojej produktywności.\n\n"
+                "📈 Górne Karty: Pokazują szybkie zestawienie najważniejszych liczb. Sprawdź, czy nie masz projektów po terminie!\n"
+                "🚥 Rozkład Priorytetów: Wizualnie prezentuje proporcje ważności Twoich zadań. Pomaga to wyłapać sytuacje, w których 'wszystko jest na wczoraj'.\n"
+                "📋 Postęp Zadań: Aplikacja skanuje zawartość każdego kafelka na tablicy. Zlicza wszystkie zadania typu To-Do (z checkboksami) i pokazuje, ile procent z nich zrealizowałeś w skali całego programu."
+            )
         else:
             text = "Brak instrukcji dla tego widoku."
 
         textbox.insert("0.0", text)
-        textbox.configure(state="disabled") # Tylko do odczytu
+        textbox.configure(state="disabled")
 
         ctk.CTkButton(self, text="Rozumiem", command=self.destroy, fg_color="#1f538d").pack(pady=15)
