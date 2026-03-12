@@ -17,78 +17,256 @@
             "workflow_data": {
                 "nodes": [
                     {
-                        "id": "6de28fbd-160f-4afa-990d-859d926592b3",
-                        "x": -200,
+                        "id": "436f83bf-fb4e-41fb-bd46-4e51b9374de6",
+                        "x": -60,
+                        "y": -680,
+                        "text": "ds",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": null,
+                        "width": 160,
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "46138188-56f2-4746-9374-e865ed950be6",
+                        "x": -400,
+                        "y": -720,
+                        "text": "proj",
+                        "header": "",
+                        "type": "project",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": "#666666",
+                        "width": 160,
+                        "height": 100,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "sex",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "884c25c7-2f43-428e-abba-39e446130c10",
+                        "x": -580,
+                        "y": -480,
+                        "text": "d",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": null,
+                        "width": 160,
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "4a45df56-6d70-479b-abc0-f3f7e5ff7e90",
+                        "x": 0,
+                        "y": -520,
+                        "text": "ds",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": null,
+                        "width": 160,
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "d88f28a8-91c2-4ef3-9e44-ea3c414acdca",
+                        "x": -240,
+                        "y": -520,
+                        "text": "proj",
+                        "header": "",
+                        "type": "project",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": "#666666",
+                        "width": 160,
+                        "height": 100,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "sex",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "3321273d-d338-4019-9a28-84bcab52a319",
+                        "x": -40,
+                        "y": -300,
+                        "text": "ds",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": null,
+                        "width": 160,
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "88321555-2b8d-4dea-91e1-8958770d9aa4",
+                        "x": -460,
+                        "y": -320,
+                        "text": "proj",
+                        "header": "",
+                        "type": "note",
+                        "shape": "rect",
+                        "color": "#2b2b2b",
+                        "border_color": "#666666",
+                        "width": 160,
+                        "height": 100,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "sex",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "9f6a7b66-694c-4b65-9347-4fd3819c937f",
+                        "x": 20,
                         "y": -140,
-                        "text": "1",
+                        "text": "ds",
+                        "header": "",
+                        "type": "block",
+                        "shape": "rect",
+                        "color": null,
+                        "border_color": null,
+                        "width": 160,
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
+                    },
+                    {
+                        "id": "457c2f81-9ff3-4e33-8e3c-c994733b93ee",
+                        "x": -320,
+                        "y": -120,
+                        "text": "proj",
                         "header": "",
                         "type": "block",
                         "shape": "parallelogram",
-                        "color": "#ffffff",
+                        "color": null,
+                        "border_color": "#666666",
                         "width": 160,
-                        "height": 80
+                        "height": 100,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "sex",
+                        "show_days_left": false
                     },
                     {
-                        "id": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
-                        "x": 100,
-                        "y": -140,
-                        "text": "2",
+                        "id": "6048c6e4-6c70-4c82-98cc-9b8f2c382fa0",
+                        "x": -600,
+                        "y": -120,
+                        "text": "d",
                         "header": "",
                         "type": "block",
                         "shape": "rect",
                         "color": null,
+                        "border_color": "#666666",
                         "width": 160,
-                        "height": 80
-                    },
-                    {
-                        "id": "f0a011da-7c6e-42a4-ba6b-c23d4786ee3d",
-                        "x": 300,
-                        "y": -180,
-                        "text": "1\ng\ng99\n9\n9",
-                        "header": "Typ",
-                        "type": "note",
-                        "shape": "rect",
-                        "color": null,
-                        "width": 160,
-                        "height": 160
+                        "height": 80,
+                        "priority": "medium",
+                        "deadline": "",
+                        "tags": "",
+                        "show_days_left": false
                     }
                 ],
                 "edges": [
                     {
-                        "id": "dbed5d9b-0c03-4461-999b-5cf6a0bb2514",
-                        "source": "6de28fbd-160f-4afa-990d-859d926592b3",
-                        "target": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
+                        "id": "4febc909-28c4-435b-83e1-5705c19ea703",
+                        "source": "46138188-56f2-4746-9374-e865ed950be6",
+                        "target": "436f83bf-fb4e-41fb-bd46-4e51b9374de6",
                         "direction": "last",
                         "color": "#888888",
                         "dashed": false,
-                        "waypoints": [
-                            [
-                                20,
-                                -260
-                            ],
-                            [
-                                100,
-                                -260
-                            ]
-                        ]
+                        "waypoints": [],
+                        "line_width": 5
                     },
                     {
-                        "id": "c3292b67-fcd9-499b-985d-defe80f267c5",
-                        "source": "6de28fbd-160f-4afa-990d-859d926592b3",
-                        "target": "01dcea39-732c-4200-8f7a-0d4cb84b48e8",
+                        "id": "d31b0bb5-ef2b-48ba-8664-7f97ca9e034c",
+                        "source": "884c25c7-2f43-428e-abba-39e446130c10",
+                        "target": "d88f28a8-91c2-4ef3-9e44-ea3c414acdca",
                         "direction": "last",
                         "color": "#888888",
                         "dashed": false,
-                        "waypoints": [
-                            [
-                                -200,
-                                100
-                            ],
-                            [
-                                100,
-                                100
-                            ]
-                        ]
+                        "waypoints": [],
+                        "line_width": 2
+                    },
+                    {
+                        "id": "c30ac419-a582-4a2f-9dd3-9c9f793b843d",
+                        "source": "d88f28a8-91c2-4ef3-9e44-ea3c414acdca",
+                        "target": "4a45df56-6d70-479b-abc0-f3f7e5ff7e90",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 2
+                    },
+                    {
+                        "id": "8d0664cf-b127-415f-beff-75825849cca2",
+                        "source": "436f83bf-fb4e-41fb-bd46-4e51b9374de6",
+                        "target": "4a45df56-6d70-479b-abc0-f3f7e5ff7e90",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 2
+                    },
+                    {
+                        "id": "8e9f1985-4f66-4a33-a670-3650f08616e8",
+                        "source": "88321555-2b8d-4dea-91e1-8958770d9aa4",
+                        "target": "3321273d-d338-4019-9a28-84bcab52a319",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 5
+                    },
+                    {
+                        "id": "ff133ace-840d-4fa0-a5dd-25450b848d66",
+                        "source": "6048c6e4-6c70-4c82-98cc-9b8f2c382fa0",
+                        "target": "457c2f81-9ff3-4e33-8e3c-c994733b93ee",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 2
+                    },
+                    {
+                        "id": "90dbd8d6-7aba-4855-a7ac-1dc48a7bb2f9",
+                        "source": "457c2f81-9ff3-4e33-8e3c-c994733b93ee",
+                        "target": "9f6a7b66-694c-4b65-9347-4fd3819c937f",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 2
+                    },
+                    {
+                        "id": "940ec7fc-be39-48e4-a3c4-c4d56fc3391d",
+                        "source": "3321273d-d338-4019-9a28-84bcab52a319",
+                        "target": "9f6a7b66-694c-4b65-9347-4fd3819c937f",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": false,
+                        "waypoints": [],
+                        "line_width": 2
                     }
                 ]
             },
