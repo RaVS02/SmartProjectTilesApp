@@ -2,10 +2,14 @@
     "preferences": {
         "mode": "Pełny",
         "columns": "3",
-        "theme": "Ciemny",
+        "theme": "Jasny",
         "color_style": "Minimalistyczny",
         "sort_by": "Waga Sumaryczna",
-        "sort_order": "Rosnąco"
+        "sort_order": "Rosnąco",
+        "filter_status": "Wszystkie",
+        "filter_wf": "Wszystkie",
+        "filter_no_deadline": false,
+        "filter_overdue": false
     },
     "project_tiles": [
         {
@@ -315,8 +319,29 @@
                         "waypoints": [],
                         "line_width": 2,
                         "label": ""
+                    },
+                    {
+                        "id": "e4ac54bc-f9e4-4b79-b771-dfc4266d0a6e",
+                        "source": "884c25c7-2f43-428e-abba-39e446130c10",
+                        "target": "46138188-56f2-4746-9374-e865ed950be6",
+                        "direction": "last",
+                        "color": "#888888",
+                        "dashed": true,
+                        "waypoints": [
+                            [
+                                -580,
+                                -620
+                            ],
+                            [
+                                -400,
+                                -620
+                            ]
+                        ],
+                        "line_width": 4,
+                        "label": ""
                     }
-                ]
+                ],
+                "canvas_bg": "#1a1a1a"
             },
             "tags": [
                 "backend",
