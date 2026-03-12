@@ -26,7 +26,6 @@ class SmartProjectTilesApp(ctk.CTk):
         self.current_page = 1
         self.items_per_page = 15
         self.search_timer = None
-
         self.resize_timer = None
         self.last_width = st.WINDOW_WIDTH
 
@@ -39,7 +38,6 @@ class SmartProjectTilesApp(ctk.CTk):
     def setup_ui(self):
         self.change_theme(self.manager.preferences.get("theme", "System"), save=False)
 
-        # 1. PASEK NARZĘDZI (Wiersz 0)
         self.toolbar_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.toolbar_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 0))
         self.toolbar_frame.grid_columnconfigure(2, weight=1)
@@ -60,8 +58,6 @@ class SmartProjectTilesApp(ctk.CTk):
                                                     variable=self.mode_var, command=self.on_preference_change)
         self.mode_switcher.grid(row=0, column=3, sticky="e", padx=(0, 20))
 
-        # --- DYNAMICZNE ELEMENTY (KOLUMNY vs KOLORY) ---
-        # Kolumny (Domyślnie widoczne w Tablicy)
         self.col_lbl = ctk.CTkLabel(self.toolbar_frame, text="Kolumny:")
         self.col_lbl.grid(row=0, column=4, sticky="e", padx=(0, 10))
         self.col_var = ctk.StringVar(value=self.manager.preferences.get("columns", "3"))
@@ -69,10 +65,7 @@ class SmartProjectTilesApp(ctk.CTk):
                                                    variable=self.col_var, command=self.on_preference_change)
         self.col_switcher.grid(row=0, column=5, sticky="e", padx=(0, 20))
 
-        # Wspólna zmienna dla kolorów (podpięta też w filtrach Tablicy)
         self.color_style_var = ctk.StringVar(value=self.manager.preferences.get("color_style", "Kolorowe Tło"))
-
-        # Kolory dla paska (Widoczne tylko w Kalendarzu!)
         self.cal_color_lbl = ctk.CTkLabel(self.toolbar_frame, text="Kolory:")
         self.cal_color_switcher = ctk.CTkOptionMenu(self.toolbar_frame,
                                                     values=["Kolorowe Tło", "Tylko Ramki", "Minimalistyczny"],
@@ -84,11 +77,11 @@ class SmartProjectTilesApp(ctk.CTk):
         self.theme_switcher = ctk.CTkSegmentedButton(self.toolbar_frame, values=["Jasny", "Ciemny", "System"],
                                                      variable=self.theme_var, command=self.change_theme)
         self.theme_switcher.grid(row=0, column=7, sticky="e")
-        # Przycisk pomocy na głównej belce
+
         self.help_btn = ctk.CTkButton(self.toolbar_frame, text="❓", width=30, command=self.show_main_help,
                                       fg_color="#1f538d")
         self.help_btn.grid(row=0, column=8, sticky="e", padx=(10, 0))
-        # 2. PASEK FILTRÓW (Wiersz 1) - Tablica
+
         self.filter_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.filter_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(10, 0))
 
@@ -145,7 +138,12 @@ class SmartProjectTilesApp(ctk.CTk):
         ctk.CTkCheckBox(row2, text="Ukryj po terminie", variable=self.filter_overdue_var,
                         command=self.on_preference_change).pack(side="left")
 
-        # 3. RAMKA KAFELKÓW (Wiersz 2) & 4. STRONICOWANIE (Wiersz 3)
+        # --- ZMIANA: PRZYCISK KOSZA (ARCHIWUM) ---
+        self.filter_archive_var = ctk.BooleanVar(value=False)
+        self.archive_cb = ctk.CTkCheckBox(row2, text="🗑️ Pokaż Kosz", variable=self.filter_archive_var,
+                                          command=self.on_preference_change, fg_color="#8b0000")
+        self.archive_cb.pack(side="right", padx=(15, 0))
+
         self.scrollable_frame = ctk.CTkScrollableFrame(self)
         self.scrollable_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=(10, 10))
 
@@ -160,18 +158,22 @@ class SmartProjectTilesApp(ctk.CTk):
         self.next_btn = ctk.CTkButton(self.pagination_frame, text="Następna >", width=100, command=self.next_page)
         self.next_btn.grid(row=0, column=2, sticky="e")
 
-        # KALENDARZ (Startowo schowany)
         self.calendar_view = CalendarView(self, self.manager, on_update_callback=self.refresh_all_views,
                                           edit_callback=self.edit_tile)
 
         self.draw_tiles()
 
+    def show_main_help(self):
+        from ui_dialogs import HelpDialog
+        ctx = "calendar" if self.main_view_var.get() == "Kalendarz" else "main"
+        HelpDialog(self, context=ctx)
+
     def switch_main_view(self, choice):
         if choice == "Tablica":
             self.cal_color_lbl.grid_remove()
             self.cal_color_switcher.grid_remove()
-            self.col_lbl.grid()
-            self.col_switcher.grid()
+            self.col_lbl.grid(row=0, column=4, sticky="e", padx=(0, 10))
+            self.col_switcher.grid(row=0, column=5, sticky="e", padx=(0, 20))
 
             if hasattr(self, "calendar_view"): self.calendar_view.grid_remove()
             self.filter_frame.grid()
@@ -194,17 +196,12 @@ class SmartProjectTilesApp(ctk.CTk):
     def refresh_all_views(self):
         self.draw_tiles(reset_page=False)
 
-    def show_main_help(self):
-        from ui_dialogs import HelpDialog
-        ctx = "calendar" if self.main_view_var.get() == "Kalendarz" else "main"
-        HelpDialog(self, context=ctx)
     def on_window_resize(self, event):
         if event.widget == self:
             current_width = self.winfo_width()
             if abs(current_width - self.last_width) > 50:
                 self.last_width = current_width
-                if self.resize_timer:
-                    self.after_cancel(self.resize_timer)
+                if self.resize_timer: self.after_cancel(self.resize_timer)
                 self.resize_timer = self.after(100, lambda: self.draw_tiles(reset_page=False))
 
     def schedule_search(self, *args):
@@ -218,7 +215,6 @@ class SmartProjectTilesApp(ctk.CTk):
         self.manager.preferences["color_style"] = self.color_style_var.get()
         self.manager.preferences["sort_by"] = self.sort_var.get()
         self.manager.preferences["sort_order"] = self.sort_order_var.get()
-
         self.manager.preferences["filter_status"] = self.filter_status_var.get()
         self.manager.preferences["filter_wf"] = self.filter_wf_var.get()
         self.manager.preferences["filter_no_deadline"] = self.filter_no_deadline_var.get()
@@ -230,8 +226,7 @@ class SmartProjectTilesApp(ctk.CTk):
         if self.main_view_var.get() == "Tablica":
             self.draw_tiles()
         else:
-            if hasattr(self, "calendar_view"):
-                self.calendar_view.refresh_data()
+            if hasattr(self, "calendar_view"): self.calendar_view.refresh_data()
 
     def change_theme(self, theme_name, save=True):
         if theme_name == "Jasny":
@@ -263,8 +258,7 @@ class SmartProjectTilesApp(ctk.CTk):
         self.manager.add_tile(new_tile_model)
         self.manager.save_to_file()
         self.draw_tiles(reset_page=True)
-        if self.main_view_var.get() == "Kalendarz":
-            self.calendar_view.refresh_data()
+        if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
 
     def draw_tiles(self, reset_page=True):
         if reset_page: self.current_page = 1
@@ -276,8 +270,19 @@ class SmartProjectTilesApp(ctk.CTk):
         for i in range(10): self.scrollable_frame.grid_columnconfigure(i, weight=0)
         for i in range(columns): self.scrollable_frame.grid_columnconfigure(i, weight=1)
 
+        # --- ZMIANA: FILTROWANIE ARCHIWUM ---
+        show_archive = self.filter_archive_var.get()
+
+        if show_archive:
+            # Pokaż TYLKO usunięte kafelki
+            filtered_tiles = [t for t in self.manager.tiles if getattr(t, "is_archived", False)]
+        else:
+            # Pokaż tylko NIEUSUNIĘTE kafelki
+            filtered_tiles = [t for t in self.manager.tiles if not getattr(t, "is_archived", False)]
+
+        # Zastosuj resztę filtrów (tylko do wybranych wyżej kafelków)
         query = self.search_var.get().lower().strip()
-        filtered_tiles = [t for t in self.manager.tiles if
+        filtered_tiles = [t for t in filtered_tiles if
                           query in t.title.lower() or any(query in tag.lower() for tag in t.tags)]
 
         status_f = self.filter_status_var.get()
@@ -342,7 +347,9 @@ class SmartProjectTilesApp(ctk.CTk):
                 color_style=color_style,
                 title_wrap=calculated_wrap,
                 save_callback=self.manager.save_to_file,
-                delete_callback=self.delete_tile,
+                archive_callback=self.archive_tile,  # <--- Dodane do Kosza
+                recover_callback=self.recover_tile,  # <--- Dodane do Kosza
+                permadelete_callback=self.permadelete_tile,  # <--- Dodane do Kosza
                 complete_callback=self.complete_tile,
                 edit_callback=self.edit_tile,
                 restore_callback=self.restore_tile,
@@ -351,6 +358,30 @@ class SmartProjectTilesApp(ctk.CTk):
             )
             tile_widget.grid(row=wiersz, column=kolumna, padx=10, pady=10, sticky="nsew")
 
+    # --- NOWE FUNKCJE OBSŁUGI KOSZA ---
+    def archive_tile(self, tile_model):
+        tile_model.is_archived = True
+        tile_model.is_pinned = False
+        self.manager.save_to_file()
+        self.draw_tiles(reset_page=False)
+        if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
+
+    def recover_tile(self, tile_model):
+        tile_model.is_archived = False
+        self.manager.save_to_file()
+        self.draw_tiles(reset_page=False)
+        if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
+
+    def permadelete_tile(self, tile_model):
+        from tkinter import messagebox
+        if tk.messagebox.askyesno("Potwierdź", f"Czy na pewno chcesz bezpowrotnie usunąć: {tile_model.title}?"):
+            self.manager.tiles.remove(tile_model)
+            self.manager.save_to_file()
+            self.draw_tiles(reset_page=False)
+            if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
+
+    # ----------------------------------
+
     def pin_tile(self, tile_model):
         tile_model.is_pinned = not tile_model.is_pinned
         self.manager.save_to_file()
@@ -358,12 +389,6 @@ class SmartProjectTilesApp(ctk.CTk):
 
     def restore_tile(self, tile_model):
         tile_model.is_completed = False
-        self.manager.save_to_file()
-        self.draw_tiles(reset_page=False)
-        if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()
-
-    def delete_tile(self, tile_model):
-        self.manager.tiles.remove(tile_model)
         self.manager.save_to_file()
         self.draw_tiles(reset_page=False)
         if self.main_view_var.get() == "Kalendarz": self.calendar_view.refresh_data()

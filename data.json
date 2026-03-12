@@ -17,6 +17,7 @@
             "title": "🔥 KRYTYCZNA POPRAWKA SERWERA (Przypięte)",
             "is_completed": false,
             "is_pinned": true,
+            "is_archived": false,
             "has_workflow": true,
             "workflow_data": {
                 "nodes": [
@@ -364,6 +365,7 @@
             "title": "📌 Główne Cele na Q1 2026",
             "is_completed": false,
             "is_pinned": true,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -394,6 +396,7 @@
             "title": "Prezentacja dla Inwestorów",
             "is_completed": false,
             "is_pinned": true,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -416,6 +419,7 @@
             "title": "Zapłacić podatek i ZUS za luty",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -450,6 +454,7 @@
             "title": "Długi, skomplikowany tytuł projektu, który ma za zadanie przetestować zawijanie tekstu na kafelku w aplikacji",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -475,6 +480,7 @@
             "title": "Trening na siłowni - Klatka + Triceps",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -500,6 +506,7 @@
             "title": "Projekt Etap 7 - Workflow Canvas (Architektura)",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -535,6 +542,7 @@
             "title": "Zrobić zakupy na weekend",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -569,6 +577,7 @@
             "title": "Zaległy Raport",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -590,6 +599,7 @@
             "title": "Przeczytać dokumentację Tkinter Canvas",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -615,6 +625,7 @@
             "title": "Umyć samochód",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -636,6 +647,7 @@
             "title": "Zaktualizować CV",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -660,6 +672,7 @@
             "title": "Zaplanować urlop (Sierpień)",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -685,6 +698,7 @@
             "title": "Bug: Problem ze stronicowaniem",
             "is_completed": true,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -707,6 +721,7 @@
             "title": "Zadzwonić do mechanika",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -728,6 +743,7 @@
             "title": "Wystawić faktury za luty",
             "is_completed": false,
             "is_pinned": true,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -758,6 +774,7 @@
             "title": "Wymiana opon na letnie",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -779,6 +796,7 @@
             "title": "Przejrzeć logi z serwera",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -803,6 +821,7 @@
             "title": "Odpisać na maile",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -824,6 +843,7 @@
             "title": "Kupić prezent na urodziny",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -849,6 +869,7 @@
             "title": "Uporządkować biurko",
             "is_completed": true,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -870,6 +891,7 @@
             "title": "Zamówić nowe krzesło",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -891,6 +913,7 @@
             "title": "Code Review - Moduł autoryzacji",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -913,6 +936,7 @@
             "title": "Nauczyć się podstaw Docker'a",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -946,6 +970,7 @@
             "title": "Zrobić obiad",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -970,6 +995,7 @@
             "title": "Wyrzucić śmieci",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -991,6 +1017,7 @@
             "title": "Rozliczenie PIT",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1015,6 +1042,7 @@
             "title": "Sprawdzić ubezpieczenie mieszkania",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1036,6 +1064,7 @@
             "title": "Zabezpieczyć sieć WiFi",
             "is_completed": true,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1057,6 +1086,7 @@
             "title": "Posprzątać w piwnicy",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1081,6 +1111,7 @@
             "title": "Przeczytać książkę o AI",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1103,6 +1134,7 @@
             "title": "Nagrać tutorial z Pythona",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1128,6 +1160,7 @@
             "title": "Poprawki w module bazy danych",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1159,6 +1192,7 @@
             "title": "Kupić nową kawę do biura",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1183,6 +1217,7 @@
             "title": "Testowanie aplikacji Menedżera",
             "is_completed": true,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1205,6 +1240,7 @@
             "title": "Odnowić subskrypcję Spotify",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1225,7 +1261,8 @@
             "id": "tile-38",
             "title": "Spotkanie z klientem",
             "is_completed": false,
-            "is_pinned": true,
+            "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1251,6 +1288,7 @@
             "title": "Kupić bilety do kina",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1272,6 +1310,7 @@
             "title": "Naprawić kran w kuchni",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1293,6 +1332,7 @@
             "title": "Odświeżyć portolio",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1318,6 +1358,7 @@
             "title": "Posadzić kwiaty na balkonie",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1342,6 +1383,7 @@
             "title": "Przeczytać artykuł o architekturze oprogramowania",
             "is_completed": false,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1364,6 +1406,7 @@
             "title": "Urodziny Mamy",
             "is_completed": false,
             "is_pinned": true,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],
@@ -1389,6 +1432,7 @@
             "title": "Zrobić podsumowanie tygodnia",
             "is_completed": true,
             "is_pinned": false,
+            "is_archived": false,
             "has_workflow": false,
             "workflow_data": {
                 "nodes": [],

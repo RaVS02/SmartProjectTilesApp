@@ -193,6 +193,9 @@ class CalendarView(ctk.CTkFrame):
         unscheduled_tiles = []
         scheduled_tiles = {}
         for t in self.manager.tiles:
+            if getattr(t, "is_archived", False):  # <--- DODANA LINIJKA (Zignoruj kosz)
+                continue
+
             if not t.deadline:
                 unscheduled_tiles.append(t)
             else:
