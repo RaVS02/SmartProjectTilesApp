@@ -1,8 +1,8 @@
 {
     "preferences": {
         "mode": "Pełny",
-        "columns": "3",
-        "theme": "Jasny",
+        "columns": "1",
+        "theme": "Ciemny",
         "color_style": "Minimalistyczny",
         "sort_by": "Waga Sumaryczna",
         "sort_order": "Rosnąco",
@@ -349,7 +349,7 @@
                 "devops"
             ],
             "priority": "very-high",
-            "deadline": "2026-03-09",
+            "deadline": "2026-03-02",
             "color": [
                 "#fafae6",
                 "#3a3a1a"
@@ -858,7 +858,7 @@
                 "dom"
             ],
             "priority": "low",
-            "deadline": "2026-03-05",
+            "deadline": "2026-03-04",
             "color": null,
             "content": {
                 "text": "Zrobione.",
@@ -922,7 +922,7 @@
                 "nauka"
             ],
             "priority": "medium",
-            "deadline": "2026-05-01",
+            "deadline": null,
             "color": [
                 "#e6f0fa",
                 "#1a2a3a"
@@ -1024,7 +1024,7 @@
                 "finanse"
             ],
             "priority": "medium",
-            "deadline": "2026-03-25",
+            "deadline": "2026-03-26",
             "color": null,
             "content": {
                 "text": null,
@@ -1217,7 +1217,7 @@
             "deadline": "2026-03-15",
             "color": null,
             "content": {
-                "text": null,
+                "text": "o",
                 "todos": []
             }
         },
@@ -1236,7 +1236,7 @@
                 "spotkanie"
             ],
             "priority": "very-high",
-            "deadline": "2026-03-12",
+            "deadline": "2026-03-06",
             "color": [
                 "#f0e6fa",
                 "#2a1a3a"
@@ -1352,7 +1352,7 @@
                 "architektura"
             ],
             "priority": "low",
-            "deadline": null,
+            "deadline": "2026-03-24",
             "color": null,
             "content": {
                 "text": "Kiedyś tam.",

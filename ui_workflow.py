@@ -436,6 +436,10 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.coord_lbl = ctk.CTkLabel(header, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 12, "bold"))
         self.coord_lbl.pack(side="right", padx=(20, 0))
 
+        # Przycisk Pomocy do Workflow
+        ctk.CTkButton(header, text="❓ Pomoc", width=70, fg_color="#1f538d", command=self.show_help).pack(side="right",
+                                                                                                         padx=(10, 0))
+
         if HAS_PIL: ctk.CTkButton(header, text="📸 Eksportuj", width=100, fg_color="#1f538d",
                                   command=self.export_image).pack(side="right", padx=(10, 0))
         self.save_btn = ctk.CTkButton(header, text="💾 Zapisz", width=100, fg_color="green", hover_color="darkgreen",
@@ -586,6 +590,9 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
     def to_minimap(self, lx, ly):
         return 100 + (lx * self.minimap_scale), 100 + (ly * self.minimap_scale)
 
+    def show_help(self):
+        from ui_dialogs import HelpDialog
+        HelpDialog(self, context="workflow")
     def update_minimap(self):
         self.minimap.delete("all")
 

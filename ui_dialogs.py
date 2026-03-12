@@ -547,3 +547,59 @@ class TileFormDialog(ctk.CTkToplevel):
             self.on_save_callback(new_tile)
 
         self.destroy()
+class HelpDialog(ctk.CTkToplevel):
+    def __init__(self, master, context="main", **kwargs):
+        super().__init__(master, **kwargs)
+        self.title("Kieszonkowy Poradnik")
+        self.geometry("500x600")
+        self.transient(master)
+        self.grab_set()
+
+        lbl_title = ctk.CTkLabel(self, text="💡 Instrukcja Obsługi", font=("Helvetica", 18, "bold"))
+        lbl_title.pack(pady=(15, 10))
+
+        textbox = ctk.CTkTextbox(self, wrap="word", font=("Helvetica", 13))
+        textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+
+        # Wczytanie odpowiedniego tekstu na podstawie kontekstu
+        if context == "main":
+            text = (
+                "🎯 GŁÓWNA TABLICA KAFELKÓW\n\n"
+                "Tutaj zarządzasz wszystkimi swoimi zadaniami i projektami.\n\n"
+                "📌 Przypinanie: Użyj ikony pinezki na kafelku, aby zawsze wyświetlał się na samej górze listy.\n"
+                "✅ Zrobione: Zakończone projekty zmieniają kolor na szary i trafiają na sam dół.\n"
+                "🔍 Filtrowanie: Użyj górnego paska, aby wyszukiwać projekty po nazwie, tagu (#praca), lub statusie.\n"
+                "🎨 Kolory Paska: Obramowania kafelków oznaczają ich 'Wagę' (Priorytet + Zbliżający się termin). Czerwony oznacza krytyczne projekty!\n"
+                "🗺️ Workflow: Jeśli przypiszesz projektowi płótno, pojawi się na nim przycisk 'Workflow', otwierający schemat graficzny."
+            )
+        elif context == "calendar":
+            text = (
+                "📅 KALENDARZ DRAG & DROP\n\n"
+                "Wizualny podgląd terminów Twoich projektów.\n\n"
+                "📥 Poczekalnia: Z lewej strony znajdują się zadania, którym nie przypisałeś jeszcze terminu (Deadline). Możesz je złapać myszką i zrzucić w dowolny dzień na siatce!\n"
+                "🖱️ Przeciąganie: Złap dowolny kafelek z dnia lub poczekalni i przenieś go w nowe miejsce. Baza danych zaktualizuje się automatycznie.\n"
+                "✏️ Szybka Edycja: Kliknij dwukrotnie (Dwuklik) na dowolny kafelek, aby otworzyć jego pełne ustawienia."
+            )
+        elif context == "workflow":
+            text = (
+                "🗺️ PŁÓTNO WORKFLOW (PRO)\n\n"
+                "Zaawansowany edytor grafowy. Posiada ukryte funkcje zoptymalizowane pod klawiaturę:\n\n"
+                "🔗 Łączenie: Wybierz narzędzie 'Połącz', kliknij w pierwszy blok, poprowadź linię (klikaj w tło, by robić zakręty) i kliknij w drugi blok.\n"
+                "💬 Etykiety Linii: Kliknij dwukrotnie (Dwuklik) w narysowaną linię, aby dodać na niej pływający tekst (np. 'Tak' / 'Nie').\n"
+                "📦 Zaznaczanie (Lasso): W trybie 'Przesuwaj', kliknij w puste pole i przeciągnij, aby narysować ramkę. Zaznaczysz wiele klocków naraz.\n"
+                "📐 Skalowanie: Gdy zaznaczysz grupę klocków, użyj białego kwadracika w prawym dolnym rogu ramki, by płynnie zmienić ich wielkość.\n\n"
+                "⌨️ SKRÓTY KLAWISZOWE:\n"
+                "• Ctrl + C / Ctrl + V : Kopiowanie i wklejanie zaznaczonych klocków (wraz z ich połączeniami!).\n"
+                "• Ctrl + Z / Ctrl + Y : Cofnij i Ponów akcję.\n"
+                "• Ctrl + G / Ctrl + U : Grupowanie i Rozgrupowywanie zaznaczonych klocków.\n"
+                "• Delete / Backspace : Usuwanie klocków i linii.\n"
+                "• Ctrl + Klik myszą : Dodawanie/usuwanie pojedynczych klocków z zaznaczenia.\n"
+                "• Ctrl + Rolka myszy : Przybliżanie i oddalanie (Zoom)."
+            )
+        else:
+            text = "Brak instrukcji dla tego widoku."
+
+        textbox.insert("0.0", text)
+        textbox.configure(state="disabled") # Tylko do odczytu
+
+        ctk.CTkButton(self, text="Rozumiem", command=self.destroy, fg_color="#1f538d").pack(pady=15)
