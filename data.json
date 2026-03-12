@@ -1,9 +1,9 @@
 {
     "preferences": {
         "mode": "Pełny",
-        "columns": "1",
+        "columns": "3",
         "theme": "Ciemny",
-        "color_style": "Tylko Ramki",
+        "color_style": "Minimalistyczny",
         "sort_by": "Waga Sumaryczna",
         "sort_order": "Rosnąco"
     },
@@ -31,7 +31,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "46138188-56f2-4746-9374-e865ed950be6",
@@ -48,7 +52,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "sex",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "884c25c7-2f43-428e-abba-39e446130c10",
@@ -65,7 +73,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "4a45df56-6d70-479b-abc0-f3f7e5ff7e90",
@@ -82,7 +94,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "d88f28a8-91c2-4ef3-9e44-ea3c414acdca",
@@ -99,12 +115,16 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "sex",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "3321273d-d338-4019-9a28-84bcab52a319",
                         "x": -40,
-                        "y": -300,
+                        "y": -320,
                         "text": "ds",
                         "header": "",
                         "type": "block",
@@ -116,7 +136,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "88321555-2b8d-4dea-91e1-8958770d9aa4",
@@ -133,7 +157,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "sex",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "9f6a7b66-694c-4b65-9347-4fd3819c937f",
@@ -150,12 +178,16 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "457c2f81-9ff3-4e33-8e3c-c994733b93ee",
-                        "x": -320,
-                        "y": -120,
+                        "x": -340,
+                        "y": -40,
                         "text": "proj",
                         "header": "",
                         "type": "block",
@@ -167,12 +199,16 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "sex",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     },
                     {
                         "id": "6048c6e4-6c70-4c82-98cc-9b8f2c382fa0",
-                        "x": -600,
-                        "y": -120,
+                        "x": -820,
+                        "y": -180,
                         "text": "d",
                         "header": "",
                         "type": "block",
@@ -184,7 +220,11 @@
                         "priority": "medium",
                         "deadline": "",
                         "tags": "",
-                        "show_days_left": false
+                        "show_days_left": false,
+                        "group_id": null,
+                        "font_family": "Helvetica",
+                        "font_size": 12,
+                        "font_color": null
                     }
                 ],
                 "edges": [
@@ -196,7 +236,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 5
+                        "line_width": 5,
+                        "label": ""
                     },
                     {
                         "id": "d31b0bb5-ef2b-48ba-8664-7f97ca9e034c",
@@ -206,7 +247,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     },
                     {
                         "id": "c30ac419-a582-4a2f-9dd3-9c9f793b843d",
@@ -216,7 +258,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     },
                     {
                         "id": "8d0664cf-b127-415f-beff-75825849cca2",
@@ -226,7 +269,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     },
                     {
                         "id": "8e9f1985-4f66-4a33-a670-3650f08616e8",
@@ -236,7 +280,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 5
+                        "line_width": 5,
+                        "label": ""
                     },
                     {
                         "id": "ff133ace-840d-4fa0-a5dd-25450b848d66",
@@ -246,7 +291,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     },
                     {
                         "id": "90dbd8d6-7aba-4855-a7ac-1dc48a7bb2f9",
@@ -256,7 +302,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     },
                     {
                         "id": "940ec7fc-be39-48e4-a3c4-c4d56fc3391d",
@@ -266,7 +313,8 @@
                         "color": "#888888",
                         "dashed": false,
                         "waypoints": [],
-                        "line_width": 2
+                        "line_width": 2,
+                        "label": ""
                     }
                 ]
             },

@@ -34,7 +34,62 @@ def get_round_rect_points(x1, y1, x2, y2, r=12):
 
 
 # ==========================================
-# OKIENKA EDYCJI (DYNAMICZNE UI + TYPOGRAFIA)
+# OKNO OPCJI EKSPORTU
+# ==========================================
+class ExportDialog(ctk.CTkToplevel):
+    def __init__(self, master, on_export_callback, **kwargs):
+        super().__init__(master, **kwargs)
+        self.title("Opcje Eksportu")
+        self.geometry("300x380")
+        self.on_export_callback = on_export_callback
+        self.transient(master)
+        self.grab_set()
+
+        ctk.CTkLabel(self, text="Format pliku:", font=("Helvetica", 12, "bold")).pack(pady=(15, 5))
+        self.format_var = ctk.StringVar(value="PNG")
+        ctk.CTkOptionMenu(self, values=["PNG", "JPG"], variable=self.format_var).pack(pady=5)
+
+        self.grid_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(self, text="Pokaż Siatkę", variable=self.grid_var).pack(pady=10)
+
+        self.minimap_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(self, text="Pokaż Minimapę", variable=self.minimap_var).pack(pady=10)
+
+        self.trans_var = ctk.BooleanVar(value=True)
+        self.trans_cb = ctk.CTkCheckBox(self, text="Przezroczyste Tło (Tylko PNG)", variable=self.trans_var)
+        self.trans_cb.pack(pady=10)
+
+        self.format_var.trace_add("write", self.on_format_change)
+
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        ctk.CTkButton(btn_frame, text="Dalej >", command=self.do_export, fg_color="green",
+                      hover_color="darkgreen").pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Anuluj", command=self.destroy, fg_color="#8b0000", hover_color="#5c0000").pack(
+            side="left", padx=5)
+
+    def on_format_change(self, *args):
+        if self.format_var.get() == "JPG":
+            self.trans_var.set(False)
+            self.trans_cb.configure(state="disabled")
+            self.grid_var.set(True)
+        else:
+            self.trans_cb.configure(state="normal")
+            self.trans_var.set(True)
+            self.grid_var.set(False)
+
+    def do_export(self):
+        self.on_export_callback(
+            self.format_var.get(),
+            self.grid_var.get(),
+            self.minimap_var.get(),
+            self.trans_var.get()
+        )
+        self.destroy()
+
+
+# ==========================================
+# OKIENKA EDYCJI KLOCKÓW
 # ==========================================
 class NodeEditDialog(ctk.CTkToplevel):
     def __init__(self, master, node, on_save_callback, on_duplicate_callback, **kwargs):
@@ -44,15 +99,22 @@ class NodeEditDialog(ctk.CTkToplevel):
         self.node = node
         self.on_save_callback = on_save_callback
         self.on_duplicate_callback = on_duplicate_callback
-
         self.original_data = self.node.to_dict()
         self.protocol("WM_DELETE_WINDOW", self.cancel_data)
-
         self.transient(master)
         self.grab_set()
 
+        self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.btn_frame.pack(side="bottom", fill="x", pady=10, padx=10)
+        ctk.CTkButton(self.btn_frame, text="Zapisz", command=self.save_data, fg_color="green",
+                      hover_color="darkgreen").pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(self.btn_frame, text="Anuluj", command=self.cancel_data, fg_color="#8b0000",
+                      hover_color="#5c0000").pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(self.btn_frame, text="📑 Kopiuj", fg_color="#b8860b", hover_color="#8a6508",
+                      command=self.duplicate_data).pack(side="left", expand=True, padx=5)
+
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.scroll.pack(fill="both", expand=True, padx=5, pady=5)
+        self.scroll.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
         f_layer = ctk.CTkFrame(self.scroll)
         f_layer.pack(fill="x", pady=5, ipadx=10, ipady=10)
@@ -182,7 +244,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(border_frame, values=list(self.border_colors.keys()), variable=self.border_var, width=130,
                           command=self.update_border_preview).pack(side="right")
 
-        # ZMIANA: SEKCJA TYPOGRAFII
         self.f_typo = ctk.CTkFrame(self.scroll)
         self.f_typo.pack(fill="x", pady=5, ipadx=10, ipady=10)
         ctk.CTkLabel(self.f_typo, text="5. Typografia", font=("Helvetica", 12, "bold")).pack(anchor="w")
@@ -213,7 +274,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(row3, values=list(self.font_color_keys.keys()), variable=self.font_color_var, width=120,
                           command=self.update_live).pack(side="right")
 
-        # SEKCJA WYMIARY
         f_dim = ctk.CTkFrame(self.scroll)
         f_dim.pack(fill="x", pady=5, ipadx=10, ipady=10)
         ctk.CTkLabel(f_dim, text="6. Wymiary", font=("Helvetica", 12, "bold")).pack(anchor="w", pady=(0, 5))
@@ -229,15 +289,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         self.height_var = ctk.StringVar(value=str(int(node.height)))
         self.height_var.trace_add("write", self.update_live)
         ctk.CTkEntry(dim_inner, textvariable=self.height_var, width=60, justify="center").pack(side="left")
-
-        btn_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
-        btn_frame.pack(pady=20)
-        ctk.CTkButton(btn_frame, text="Zapisz", command=self.save_data, width=100, fg_color="green",
-                      hover_color="darkgreen").pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Anuluj", command=self.cancel_data, width=100, fg_color="#8b0000",
-                      hover_color="#5c0000").pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="📑 Kopiuj", fg_color="#b8860b", hover_color="#8a6508",
-                      command=self.duplicate_data, width=100).pack(side="left", padx=5)
 
         self.on_type_change()
 
@@ -287,7 +338,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         deadline = self.cal.get_date().strftime("%Y-%m-%d") if self.deadline_var.get() else ""
         ntype = self.node_types.get(self.type_var.get())
         shape = "rect" if ntype in ["project", "text"] else self.shapes.get(self.shape_var.get())
-
         try:
             new_w = snap(int(self.width_var.get()))
             new_h = snap(int(self.height_var.get()))
@@ -317,8 +367,9 @@ class NodeEditDialog(ctk.CTkToplevel):
         for edge in self.master.edges.values():
             if edge.source == self.node or edge.target == self.node:
                 edge.update_position()
-        self.master.draw_group_selection()  # Aktualizacja ramki grupy
+        self.master.draw_group_selection()
         self.master.mark_unsaved()
+        self.master.update_minimap()
 
     def cancel_data(self):
         self.node.update_properties(self.original_data)
@@ -326,6 +377,7 @@ class NodeEditDialog(ctk.CTkToplevel):
             if edge.source == self.node or edge.target == self.node:
                 edge.update_position()
         self.master.draw_group_selection()
+        self.master.update_minimap()
         self.destroy()
 
     def save_data(self):
@@ -402,6 +454,7 @@ class EdgeEditDialog(ctk.CTkToplevel):
         new_label = self.label_var.get()
         self.edge.update_properties(new_dir, new_color, new_dashed, new_w, new_label)
         self.master.mark_unsaved()
+        self.master.update_minimap()
 
     def cancel_data(self):
         self.edge.update_properties(
@@ -409,6 +462,7 @@ class EdgeEditDialog(ctk.CTkToplevel):
             self.original_data["dashed"], self.original_data.get("line_width", 2),
             self.original_data.get("label", "")
         )
+        self.master.update_minimap()
         self.destroy()
 
     def save_data(self):
@@ -448,12 +502,9 @@ class CanvasNode:
         self.deadline = deadline
         self.tags = tags
         self.show_days_left = show_days_left
-
-        # ZMIANA: Zmienne typografii
         self.font_family = font_family
         self.font_size = font_size
         self.font_color = font_color
-
         self.selected = False
 
         self.bg_id = None;
@@ -497,7 +548,6 @@ class CanvasNode:
         x1, y1 = sx - sw / 2, sy - sh / 2
         x2, y2 = sx + sw / 2, sy + sh / 2
 
-        # Obliczenie własnej typografii
         base_f_size = int(self.font_size * z)
         font_style = (self.font_family, max(4, base_f_size), "bold")
         header_font_style = (self.font_family, max(4, int(base_f_size * 0.8)), "bold")
@@ -628,12 +678,10 @@ class CanvasNode:
         self.deadline = data.get("deadline", "")
         self.tags = data.get("tags", "");
         self.show_days_left = data.get("show_days_left", False)
-
-        self.font_family = data.get("font_family", "Helvetica")
+        self.font_family = data.get("font_family", "Helvetica");
         self.font_size = data.get("font_size", 12)
         self.font_color = data.get("font_color", None)
-
-        self.resize(data.get("width", self.width), data.get("height", self.height))
+        self.resize(data.get("width", self.width), data.get("height", self.height));
         self.draw()
 
     def destroy(self):
@@ -752,6 +800,8 @@ class CanvasEdge:
             self.canvas.coords(self.label_id, mid_px, mid_py)
             bbox = self.canvas.bbox(self.label_id)
             if bbox:
+                bg_col = self.wf.canvas.cget("bg")
+                self.canvas.itemconfig(self.label_bg_id, fill=bg_col)
                 self.canvas.coords(self.label_bg_id, bbox[0] - 3, bbox[1] - 2, bbox[2] + 3, bbox[3] + 2)
                 self.canvas.tag_raise(self.label_bg_id)
                 self.canvas.tag_raise(self.label_id)
@@ -807,7 +857,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         self.history = []
         self.history_idx = -1
-
         self.has_unsaved_changes = False
 
         self.resizing_group = False
@@ -815,25 +864,29 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.group_start_nodes = []
         self.group_start_bbox = None
 
-        self.dragged_node = None
-        self.resizing_node = None
+        self.dragged_node = None;
+        self.resizing_node = None;
         self.dragged_waypoint = None
-        self.drawing_state = None
+        self.drawing_state = None;
         self.temp_line = None
         self.pan_start_x = 0;
         self.pan_start_y = 0
-        self.lasso_start = None
-        self.lasso_rect = None
+        self.lasso_start = None;
+        self.lasso_rect = None;
         self.was_dragged = False
 
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
+        # PASEK GÓRNY
         header = ctk.CTkFrame(self, height=50, fg_color="transparent")
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
         ctk.CTkButton(header, text="< Wróć do listy", width=100, command=self.close_callback).pack(side="left",
                                                                                                    padx=(0, 20))
         ctk.CTkLabel(header, text=f"📍 Workflow: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
+
+        self.coord_lbl = ctk.CTkLabel(header, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 12, "bold"))
+        self.coord_lbl.pack(side="right", padx=(20, 0))
 
         if HAS_PIL: ctk.CTkButton(header, text="📸 Eksportuj", width=100, fg_color="#1f538d",
                                   command=self.export_image).pack(side="right", padx=(10, 0))
@@ -843,20 +896,54 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         ctk.CTkButton(header, text="🗑️ Wyczyść", width=100, fg_color="#8b0000", hover_color="#5c0000",
                       command=self.clear_canvas).pack(side="right")
 
+        # PASEK BOCZNY - PODZIAŁ NA GÓRĘ I DÓŁ, by unikać ucinania!
         self.toolbar = ctk.CTkFrame(self, width=180)
         self.toolbar.grid(row=1, column=0, sticky="ns", padx=(20, 10), pady=(0, 20))
-        ctk.CTkLabel(self.toolbar, text="Narzędzia", font=st.FONT_TITLE).pack(pady=(15, 10))
+
+        # Dolna, nieprzewijana sekcja paska narzędzi
+        self.toolbar_bottom = ctk.CTkFrame(self.toolbar, fg_color="transparent")
+        self.toolbar_bottom.pack(side="bottom", fill="x", pady=5)
+
+        ctk.CTkButton(self.toolbar_bottom, text="🏠 Zresetuj Widok", width=120, command=self.reset_view).pack(
+            side="bottom", pady=10)
+
+        zoom_frame = ctk.CTkFrame(self.toolbar_bottom, fg_color="transparent")
+        zoom_frame.pack(side="bottom", pady=(5, 10))
+        ctk.CTkButton(zoom_frame, text="-", width=30, command=self.zoom_out).pack(side="left", padx=2)
+        self.zoom_lbl = ctk.CTkLabel(zoom_frame, text="100%", font=("Helvetica", 12, "bold"), width=45)
+        self.zoom_lbl.pack(side="left", padx=2)
+        ctk.CTkButton(zoom_frame, text="+", width=30, command=self.zoom_in).pack(side="left", padx=2)
+
+        bg_frame = ctk.CTkFrame(self.toolbar_bottom, fg_color="transparent")
+        bg_frame.pack(side="bottom", pady=10)
+        ctk.CTkLabel(bg_frame, text="Kolor Tła:", font=("Helvetica", 10)).pack()
+        self.canvas_bg_var = ctk.StringVar()
+        self.canvas_bg_map = {"Ciemne": "#1a1a1a", "Białe": "#ffffff", "Szare": "#2b2b2b", "Niebieskie": "#1e293b",
+                              "Czarne": "#000000"}
+        loaded_bg = self.model.workflow_data.get("canvas_bg", "#1a1a1a")
+        current_bg_name = "Ciemne"
+        for k, v in self.canvas_bg_map.items():
+            if v == loaded_bg: current_bg_name = k
+        self.canvas_bg_var.set(current_bg_name)
+        ctk.CTkOptionMenu(bg_frame, values=list(self.canvas_bg_map.keys()), variable=self.canvas_bg_var,
+                          command=self.change_canvas_bg, width=120).pack(pady=2)
+
+        # Górna, przewijana sekcja paska narzędzi (Dla małych monitorów)
+        self.toolbar_scroll = ctk.CTkScrollableFrame(self.toolbar, fg_color="transparent", width=170)
+        self.toolbar_scroll.pack(side="top", fill="both", expand=True)
+
+        ctk.CTkLabel(self.toolbar_scroll, text="Narzędzia", font=st.FONT_TITLE).pack(pady=(10, 10))
 
         self.current_mode = tk.StringVar(value="move")
         tools = [("🖱️ Przesuwaj", "move"), ("✋ Przesuń Widok", "pan"), ("🔲 Dodaj Blok", "add_block"),
-                 ("↗️ Połącz (Punkty)", "add_edge"), ("🪢 Wyginaj Linie", "bend"), ("❌ Usuń element", "delete")]
+                 ("↗️ Połącz", "add_edge"), ("🪢 Wyginaj Linie", "bend"), ("❌ Usuń element", "delete")]
         for text, mode in tools:
-            rb = ctk.CTkRadioButton(self.toolbar, text=text, variable=self.current_mode, value=mode,
+            rb = ctk.CTkRadioButton(self.toolbar_scroll, text=text, variable=self.current_mode, value=mode,
                                     font=("Helvetica", 13), command=self.on_tool_changed)
-            rb.pack(anchor="w", padx=15, pady=8)
+            rb.pack(anchor="w", padx=10, pady=8)
 
-        self.context_frame = ctk.CTkFrame(self.toolbar, fg_color="transparent")
-        self.context_frame.pack(fill="x", padx=10, pady=10)
+        self.context_frame = ctk.CTkFrame(self.toolbar_scroll, fg_color="transparent")
+        self.context_frame.pack(fill="x", padx=5, pady=5)
 
         self.block_options = ctk.CTkFrame(self.context_frame, fg_color="transparent")
         ctk.CTkLabel(self.block_options, text="Typ Bloku:", font=("Helvetica", 11)).pack()
@@ -884,24 +971,30 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.new_edge_dashed = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(self.edge_options, text="Przerywana", variable=self.new_edge_dashed).pack(pady=10)
 
-        zoom_frame = ctk.CTkFrame(self.toolbar, fg_color="transparent")
-        zoom_frame.pack(side="bottom", pady=(5, 10))
-        ctk.CTkButton(zoom_frame, text="-", width=30, command=self.zoom_out).pack(side="left", padx=2)
-        self.zoom_lbl = ctk.CTkLabel(zoom_frame, text="100%", font=("Helvetica", 12, "bold"), width=45)
-        self.zoom_lbl.pack(side="left", padx=2)
-        ctk.CTkButton(zoom_frame, text="+", width=30, command=self.zoom_in).pack(side="left", padx=2)
-
-        ctk.CTkButton(self.toolbar, text="🏠 Zresetuj Widok", width=120, command=self.reset_view).pack(side="bottom",
-                                                                                                      pady=10)
-        self.coord_lbl = ctk.CTkLabel(self.toolbar, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 10))
-        self.coord_lbl.pack(side="bottom", pady=5)
-
+        # CANVAS I MINIMAPA
         self.canvas_container = ctk.CTkFrame(self)
         self.canvas_container.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=(0, 20))
 
-        self.canvas = tk.Canvas(self.canvas_container, bg="#1a1a1a", highlightthickness=0,
+        self.canvas = tk.Canvas(self.canvas_container, bg=loaded_bg, highlightthickness=0,
                                 scrollregion=(-10000, -10000, 10000, 10000))
         self.canvas.pack(fill="both", expand=True, padx=2, pady=2)
+
+        self.minimap_size = 200
+        self.minimap_scale = 0.01
+        self.minimap = tk.Canvas(self.canvas_container, width=self.minimap_size, height=self.minimap_size, bg="#2a2a2a",
+                                 highlightthickness=1, highlightbackground="#555")
+        self.minimap.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
+
+        btn_mm_in = tk.Button(self.minimap, text="+", font=("Arial", 8, "bold"), bg="#444", fg="white", relief="flat",
+                              bd=0, command=self.minimap_zoom_in)
+        btn_mm_in.place(x=5, y=5, width=20, height=20)
+        btn_mm_out = tk.Button(self.minimap, text="-", font=("Arial", 8, "bold"), bg="#444", fg="white", relief="flat",
+                               bd=0, command=self.minimap_zoom_out)
+        btn_mm_out.place(x=5, y=30, width=20, height=20)
+
+        self.minimap.bind("<ButtonPress-1>", self.on_minimap_click)
+        self.minimap.bind("<B1-Motion>", self.on_minimap_drag)
+        self.minimap.bind("<MouseWheel>", self.on_minimap_wheel)
 
         self.canvas.bind("<Configure>", self.on_canvas_configure)
         self.canvas.bind("<ButtonPress-1>", self.on_press)
@@ -931,8 +1024,77 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.after(50, self.initial_center)
         self.after(100, self.load_workflow)
 
+    def change_canvas_bg(self, choice):
+        c = self.canvas_bg_map.get(choice, "#1a1a1a")
+        self.canvas.config(bg=c)
+        self.mark_unsaved()
+        for e in self.edges.values(): e.update_position()
+
+    def minimap_zoom_in(self):
+        self.minimap_scale = min(self.minimap_scale * 1.5, 0.05)
+        self.update_minimap()
+
+    def minimap_zoom_out(self):
+        self.minimap_scale = max(self.minimap_scale / 1.5, 0.002)
+        self.update_minimap()
+
+    def on_minimap_wheel(self, event):
+        if event.num == 4 or getattr(event, "delta", 0) > 0:
+            self.minimap_zoom_in()
+        elif event.num == 5 or getattr(event, "delta", 0) < 0:
+            self.minimap_zoom_out()
+
+    def to_minimap(self, lx, ly):
+        return 100 + (lx * self.minimap_scale), 100 + (ly * self.minimap_scale)
+
+    def update_minimap(self):
+        self.minimap.delete("all")
+
+        for e in self.edges.values():
+            pts = [self.to_minimap(e.source.x, e.source.y)]
+            for wp in e.waypoints: pts.append(self.to_minimap(wp[0], wp[1]))
+            pts.append(self.to_minimap(e.target.x, e.target.y))
+            flat_pts = []
+            for p in pts: flat_pts.extend(p)
+            if len(flat_pts) >= 4: self.minimap.create_line(*flat_pts, fill="#888")
+
+        for n in self.nodes.values():
+            mx, my = self.to_minimap(n.x, n.y)
+            mw, mh = n.width * self.minimap_scale, n.height * self.minimap_scale
+            color = n.color if n.color else "#555"
+            if n.node_type == "text": color = "#fff"
+            self.minimap.create_rectangle(mx - mw / 2, my - mh / 2, mx + mw / 2, my + mh / 2, fill=color, outline="")
+
+        x0 = self.canvas.canvasx(0) / self.zoom
+        y0 = self.canvas.canvasy(0) / self.zoom
+        x1 = self.canvas.canvasx(self.canvas.winfo_width()) / self.zoom
+        y1 = self.canvas.canvasy(self.canvas.winfo_height()) / self.zoom
+
+        vx0, vy0 = self.to_minimap(x0, y0)
+        vx1, vy1 = self.to_minimap(x1, y1)
+        self.minimap.create_rectangle(vx0, vy0, vx1, vy1, outline="white", width=2, tags="viewport")
+
+    def move_viewport_from_minimap(self, mx, my):
+        lx = (mx - 100) / self.minimap_scale
+        ly = (my - 100) / self.minimap_scale
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+        target_cx = (lx * self.zoom) - cw / 2
+        target_cy = (ly * self.zoom) - ch / 2
+        frac_x = (target_cx + 10000) / 20000
+        frac_y = (target_cy + 10000) / 20000
+        self.canvas.xview_moveto(frac_x)
+        self.canvas.yview_moveto(frac_y)
+        self.draw_grid()
+        self.update_minimap()
+
+    def on_minimap_click(self, event):
+        self.move_viewport_from_minimap(event.x, event.y)
+
+    def on_minimap_drag(self, event):
+        self.move_viewport_from_minimap(event.x, event.y)
+
     def draw_group_selection(self):
-        """ZMIANA: Bounding Box - System Grupowego Skalowania"""
         self.canvas.delete("group_bbox")
         self.canvas.delete("group_handle")
         selected_nodes = [n for n in self.nodes.values() if n.selected]
@@ -957,24 +1119,56 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             self.canvas.itemconfig(selected_nodes[0].handle_id, state="normal")
 
     def export_image(self):
+        ExportDialog(self, self.execute_export)
+
+    def execute_export(self, format_val, show_grid, show_minimap, transparent):
         from customtkinter import filedialog
-        filepath = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG Image", "*.png")])
+        ext = ".png" if format_val == "PNG" else ".jpg"
+        filepath = filedialog.asksaveasfilename(defaultextension=ext, filetypes=[(f"{format_val} Image", f"*{ext}")])
         if not filepath: return
+
         for n in self.nodes.values(): n.set_selected(False)
         for e in self.edges.values(): e.set_selected(False)
         self.draw_group_selection()
+
+        if not show_grid: self.canvas.itemconfig("grid", state="hidden")
+        if not show_minimap: self.minimap.place_forget()
+
+        old_bg = self.canvas.cget("bg")
+        if transparent and format_val == "PNG":
+            self.canvas.config(bg="#ff00ff")
+
         self.update_idletasks()
 
         x0 = self.canvas.winfo_rootx()
         y0 = self.canvas.winfo_rooty()
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
+
         try:
             img = ImageGrab.grab(bbox=(x0, y0, x0 + w, y0 + h))
+
+            if transparent and format_val == "PNG":
+                img = img.convert("RGBA")
+                data = img.getdata()
+                new_data = []
+                for item in data:
+                    if item[0] == 255 and item[1] == 0 and item[2] == 255:
+                        new_data.append((255, 255, 255, 0))
+                    else:
+                        new_data.append(item)
+                img.putdata(new_data)
+            elif format_val == "JPG":
+                img = img.convert("RGB")
+
             img.save(filepath)
             tk.messagebox.showinfo("Eksport", "Zapisano poprawnie!")
         except Exception as e:
             tk.messagebox.showerror("Błąd", f"Nie udało się zapisać: {e}")
+        finally:
+            self.canvas.config(bg=old_bg)
+            self.canvas.itemconfig("grid", state="normal")
+            self.minimap.place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)
 
     def mark_unsaved(self):
         if not self.has_unsaved_changes:
@@ -987,6 +1181,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.history = self.history[:self.history_idx + 1]
         self.history.append(state)
         self.history_idx += 1
+        self.update_minimap()
 
     def on_undo_key(self, event):
         if self.history_idx > 0:
@@ -1007,6 +1202,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self._render_current_state()
         self.mark_unsaved()
         self.draw_group_selection()
+        self.update_minimap()
 
     def on_mouse_wheel(self, event):
         if event.state & 0x0004:
@@ -1135,14 +1331,18 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         for e in self.edges.values(): e.draw()
         self.draw_grid()
         self.draw_group_selection()
+        self.update_minimap()
 
     def initial_center(self):
+        self.update_idletasks()  # ZMIANA: Zmusza Tkintera do obliczenia realnych wymiarów ekranu przed rysowaniem siatki
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
         frac_x = (10000 - w / 2) / 20000 if w > 0 else 0.48
         frac_y = (10000 - h / 2) / 20000 if h > 0 else 0.48
         self.canvas.xview_moveto(frac_x)
         self.canvas.yview_moveto(frac_y)
+        self.update_minimap()
+        self.draw_grid()  # ZMIANA: Rysuj siatkę natychmiast po wycentrowaniu!
 
     def reset_view(self):
         self.set_zoom(1.0)
@@ -1150,6 +1350,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
     def on_canvas_configure(self, event):
         self.draw_grid()
+        self.update_minimap()
 
     def start_pan(self, event):
         if self.current_mode.get() == "add_edge" and getattr(self, "drawing_state", None):
@@ -1162,6 +1363,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         self.draw_grid()
         self.on_tool_changed()
+        self.update_minimap()
 
     def on_mouse_move(self, event):
         cx = self.canvas.canvasx(event.x)
@@ -1173,7 +1375,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         if self.current_mode.get() == "add_edge" and getattr(self, "drawing_state", None) and self.temp_line:
             z = self.zoom
             start_node = self.drawing_state["node"]
-
             items = self.canvas.find_overlapping(cx - 5, cy - 5, cx + 5, cy + 5)
             target_node = None
             for it in items:
@@ -1272,7 +1473,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             clicked_node_id = None;
             clicked_handle_id = None;
             clicked_edge_id = None
-
             if item:
                 tags = self.canvas.gettags(item[0])
                 if "group_handle" in tags:
@@ -1448,8 +1648,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 self.canvas.delete("guide")
                 target_x = snap(logical_x)
                 target_y = snap(logical_y)
-
-                # ZMIANA: Inteligentne Prowadnice (Smart Guides)
                 snap_threshold = 15
                 snapped_x = False;
                 snapped_y = False
@@ -1570,6 +1768,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
     def save_workflow(self):
         self.model.workflow_data["nodes"] = [node.to_dict() for node in self.nodes.values()]
         self.model.workflow_data["edges"] = [edge.to_dict() for edge in self.edges.values()]
+        self.model.workflow_data["canvas_bg"] = self.canvas.cget("bg")
         self.manager.save_to_file()
         self.has_unsaved_changes = False
         self.save_btn.configure(fg_color="green", hover_color="darkgreen", text="💾 Zapisz")
