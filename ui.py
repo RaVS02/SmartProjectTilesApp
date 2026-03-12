@@ -1,5 +1,9 @@
 import customtkinter as ctk
 import settings as st
+from models import ProjectTileModel
+from tkcalendar import DateEntry
+from datetime import datetime
+
 
 class ProjectTileWidget(ctk.CTkFrame):
     def __init__(self, master, tile_model, is_compact=False, color_style="Kolorowe Tło",
@@ -29,7 +33,8 @@ class ProjectTileWidget(ctk.CTkFrame):
             else:
                 bg_color, border_color = st.DEFAULT_TILE_COLOR, "gray"
 
-        super().__init__(master, fg_color=bg_color, border_color=border_color, border_width=2, corner_radius=10, **kwargs)
+        super().__init__(master, fg_color=bg_color, border_color=border_color, border_width=2, corner_radius=10,
+                         **kwargs)
         self.build_ui()
 
     def build_ui(self):
@@ -41,7 +46,8 @@ class ProjectTileWidget(ctk.CTkFrame):
         header.grid_columnconfigure(0, weight=1)
         header.grid_columnconfigure(1, weight=0)
 
-        title_label = ctk.CTkLabel(header, text=self.model.title, font=st.FONT_TITLE, justify="left", wraplength=self.title_wrap)
+        title_label = ctk.CTkLabel(header, text=self.model.title, font=st.FONT_TITLE, justify="left",
+                                   wraplength=self.title_wrap)
         title_label.grid(row=0, column=0, sticky="w")
 
         p_frame = ctk.CTkFrame(header, fg_color="transparent")
@@ -51,7 +57,8 @@ class ProjectTileWidget(ctk.CTkFrame):
         ctk.CTkFrame(p_frame, width=10, height=10, corner_radius=5, fg_color=dot_color).pack(side="left", padx=5)
 
         priority_text = st.PRIORITY_LABELS.get(self.model.priority, "")
-        ctk.CTkLabel(p_frame, text=priority_text, font=("Helvetica", 11, "bold"), text_color=("#444444", "#cccccc")).pack(side="left")
+        ctk.CTkLabel(p_frame, text=priority_text, font=("Helvetica", 11, "bold"),
+                     text_color=("#444444", "#cccccc")).pack(side="left")
 
         if self.pin_callback:
             pin_icon = "📌" if self.model.is_pinned else "📍"
@@ -64,42 +71,72 @@ class ProjectTileWidget(ctk.CTkFrame):
             ).pack(side="left", padx=(5, 0))
 
         if self.model.tags:
-            ctk.CTkLabel(header, text=" ".join([f"#{t}" for t in self.model.tags]), font=st.FONT_TAGS).grid(row=1, column=0, columnspan=2, sticky="w")
+            ctk.CTkLabel(header, text=" ".join([f"#{t}" for t in self.model.tags]), font=st.FONT_TAGS).grid(row=1,
+                                                                                                            column=0,
+                                                                                                            columnspan=2,
+                                                                                                            sticky="w")
 
         dl = self.model.days_left
         dl_text, dl_color = "", st.TIME_COLORS["none"]
         if dl is not None:
-            if dl < 0: dl_color, dl_text = st.TIME_COLORS["overdue"], f"Po terminie ({-dl} dni temu)"
-            elif dl == 0: dl_color, dl_text = st.TIME_COLORS["today"], "Termin mija DZIŚ!"
-            elif dl == 1: dl_color, dl_text = st.TIME_COLORS["1_3"], "Został 1 dzień"
+            if dl < 0:
+                dl_color, dl_text = st.TIME_COLORS["overdue"], f"Po terminie ({-dl} dni temu)"
+            elif dl == 0:
+                dl_color, dl_text = st.TIME_COLORS["today"], "Termin mija DZIŚ!"
+            elif dl == 1:
+                dl_color, dl_text = st.TIME_COLORS["1_3"], "Został 1 dzień"
             else:
-                if dl <= 3: dl_color = st.TIME_COLORS["1_3"]
-                elif dl <= 7: dl_color = st.TIME_COLORS["4_7"]
-                elif dl <= 14: dl_color = st.TIME_COLORS["8_14"]
-                else: dl_color = st.TIME_COLORS["15_plus"]
+                if dl <= 3:
+                    dl_color = st.TIME_COLORS["1_3"]
+                elif dl <= 7:
+                    dl_color = st.TIME_COLORS["4_7"]
+                elif dl <= 14:
+                    dl_color = st.TIME_COLORS["8_14"]
+                else:
+                    dl_color = st.TIME_COLORS["15_plus"]
                 dl_text = f"Zostało: {dl} dni ({self.model.deadline})"
 
-        if dl_text: ctk.CTkLabel(self, text=f"⏱️ {dl_text}", font=st.FONT_TAGS, text_color=dl_color).grid(row=1, column=0, sticky="w", padx=10, pady=(0, 5))
+        if dl_text: ctk.CTkLabel(self, text=f"⏱️ {dl_text}", font=st.FONT_TAGS, text_color=dl_color).grid(row=1,
+                                                                                                          column=0,
+                                                                                                          sticky="w",
+                                                                                                          padx=10,
+                                                                                                          pady=(0, 5))
 
         if not self.is_compact:
             content_frame = ctk.CTkFrame(self, fg_color="transparent")
             content_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
             if self.model.content.get("text"):
-                ctk.CTkLabel(content_frame, text=self.model.content.get("text"), wraplength=250, justify="left").grid(row=0, column=0, sticky="w", pady=(0, 10))
+                ctk.CTkLabel(content_frame, text=self.model.content.get("text"), wraplength=250, justify="left").grid(
+                    row=0, column=0, sticky="w", pady=(0, 10))
 
             todos = self.model.content.get("todos", [])
             if todos:
+                # --- NOWE: INICJALIZACJA PASKA POSTĘPU ---
+                progress_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+                progress_frame.grid(row=len(todos) + 1, column=0, sticky="ew", pady=(10, 0))
+
+                self.prog_lbl = ctk.CTkLabel(progress_frame, text="", font=("Helvetica", 10, "bold"), text_color="gray")
+                self.prog_lbl.pack(side="left", padx=(0, 10))
+
+                self.prog_bar = ctk.CTkProgressBar(progress_frame, height=8)
+                self.prog_bar.pack(side="left", fill="x", expand=True)
+
+                self.update_progress_bar(todos)
+
                 for index, todo in enumerate(todos):
                     stan_zadania = ctk.BooleanVar(value=todo.get("is_done"))
                     checkbox_state = "disabled" if self.model.is_completed else "normal"
-                    checkbox_widget = ctk.CTkCheckBox(content_frame, text=todo["task"], variable=stan_zadania, state=checkbox_state)
+                    checkbox_widget = ctk.CTkCheckBox(content_frame, text=todo["task"], variable=stan_zadania,
+                                                      state=checkbox_state)
                     if todo.get("is_done"): checkbox_widget.configure(text_color="gray")
 
                     def on_checkbox_click(t=todo, var=stan_zadania, cb=checkbox_widget):
                         t["is_done"] = var.get()
                         cb.configure(text_color="gray" if var.get() else ["black", "#DCE4EE"])
                         if self.save_callback: self.save_callback()
+                        # --- DYNAMICZNA AKTUALIZACJA PASKA PO KLIKNIĘCIU ---
+                        self.update_progress_bar(self.model.content.get("todos", []))
 
                     checkbox_widget.configure(command=on_checkbox_click)
                     checkbox_widget.grid(row=index + 1, column=0, sticky="w", pady=2)
@@ -110,11 +147,43 @@ class ProjectTileWidget(ctk.CTkFrame):
         btn_font = ("Helvetica", 11)
 
         if self.model.has_workflow and not self.model.is_completed and self.open_workflow_callback:
-            ctk.CTkButton(action_frame, text="🗺️ Workflow", width=80, font=btn_font, fg_color="#1f538d", command=lambda: self.open_workflow_callback(self.model)).pack(side="left", padx=(2, 10))
+            ctk.CTkButton(action_frame, text="🗺️ Workflow", width=80, font=btn_font, fg_color="#1f538d",
+                          command=lambda: self.open_workflow_callback(self.model)).pack(side="left", padx=(2, 10))
 
         if self.model.is_completed:
-            if self.restore_callback: ctk.CTkButton(action_frame, text="⏪ Przywróć", width=70, font=btn_font, fg_color="#d48806", hover_color="#b07004", command=lambda: self.restore_callback(self.model)).pack(side="left", padx=2)
+            if self.restore_callback: ctk.CTkButton(action_frame, text="⏪ Przywróć", width=70, font=btn_font,
+                                                    fg_color="#d48806", hover_color="#b07004",
+                                                    command=lambda: self.restore_callback(self.model)).pack(side="left",
+                                                                                                            padx=2)
         else:
-            if self.edit_callback: ctk.CTkButton(action_frame, text="✏️ Edytuj", width=60, font=btn_font, command=lambda: self.edit_callback(self.model)).pack(side="left", padx=2)
-            if self.complete_callback: ctk.CTkButton(action_frame, text="✅ Zrobione", width=70, font=btn_font, fg_color="green", hover_color="darkgreen", command=lambda: self.complete_callback(self.model)).pack(side="left", padx=2)
-        if self.delete_callback: ctk.CTkButton(action_frame, text="🗑️ Usuń", width=50, font=btn_font, fg_color="#8b0000", hover_color="#5c0000", command=lambda: self.delete_callback(self.model)).pack(side="right", padx=2)
+            if self.edit_callback: ctk.CTkButton(action_frame, text="✏️ Edytuj", width=60, font=btn_font,
+                                                 command=lambda: self.edit_callback(self.model)).pack(side="left",
+                                                                                                      padx=2)
+            if self.complete_callback: ctk.CTkButton(action_frame, text="✅ Zrobione", width=70, font=btn_font,
+                                                     fg_color="green", hover_color="darkgreen",
+                                                     command=lambda: self.complete_callback(self.model)).pack(
+                side="left", padx=2)
+        if self.delete_callback: ctk.CTkButton(action_frame, text="🗑️ Usuń", width=50, font=btn_font,
+                                               fg_color="#8b0000", hover_color="#5c0000",
+                                               command=lambda: self.delete_callback(self.model)).pack(side="right",
+                                                                                                      padx=2)
+
+    # --- NOWA FUNKCJA DO RYSOWANIA PASKA ---
+    def update_progress_bar(self, todos):
+        """Oblicza i aktualizuje wartość oraz kolor paska postępu"""
+        total = len(todos)
+        done = sum(1 for t in todos if t.get("is_done"))
+        val = done / total if total > 0 else 0
+        pct = int(val * 100)
+
+        self.prog_lbl.configure(text=f"Postęp: {done}/{total} ({pct}%)")
+        self.prog_bar.set(val)
+
+        if pct == 100:
+            prog_color = "#00cc00"  # Zielony
+        elif pct >= 50:
+            prog_color = "#e6b800"  # Żółty
+        else:
+            prog_color = "#cc4400"  # Czerwony
+
+        self.prog_bar.configure(progress_color=prog_color)
