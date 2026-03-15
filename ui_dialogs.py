@@ -173,7 +173,6 @@ class NodeEditDialog(ctk.CTkToplevel):
             if self.cal._top_cal:
                 self.cal._top_cal.lift()
                 self.cal._top_cal.attributes('-topmost', True)
-
         self.cal.drop_down = safe_drop2
 
         def smart_focus2(event):

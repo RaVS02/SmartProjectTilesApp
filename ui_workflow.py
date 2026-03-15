@@ -1410,7 +1410,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 clicked_edge.destroy()
                 del self.edges[clicked_edge.id]
                 item_deleted = True
-
             if item_deleted:
                 self.draw_group_selection()
                 self.mark_unsaved()
