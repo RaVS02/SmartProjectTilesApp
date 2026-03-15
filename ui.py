@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import settings as st
 from models import ProjectTileModel
+from translations import tr
 
 
 class ProjectTileWidget(ctk.CTkFrame):
@@ -22,9 +23,8 @@ class ProjectTileWidget(ctk.CTkFrame):
 
         total_weight = self.model.total_weight
 
-        # --- ZMIANA: Szarobure kolory dla Kosza ---
         if self.model.is_archived:
-            bg_color, border_color = ("#2b2b2b", "#1a1a1a"), "#444444"
+            bg_color, border_color = st.ARCHIVED_TILE_BG, st.ARCHIVED_TILE_BORDER
         elif self.model.is_completed:
             bg_color, border_color = st.COMPLETED_TILE_COLOR, "gray"
         else:
@@ -60,25 +60,32 @@ class ProjectTileWidget(ctk.CTkFrame):
         dot_color = st.PRIORITY_COLORS.get(self.model.priority, "gray")
         ctk.CTkFrame(p_frame, width=10, height=10, corner_radius=5, fg_color=dot_color).pack(side="left", padx=5)
 
+        priority_text = tr(st.PRIORITY_LABELS.get(self.model.priority, ""))
+        ctk.CTkLabel(p_frame, text=priority_text, font=("Helvetica", 11, "bold"),
+                     text_color=("#444444", "#cccccc")).pack(side="left")
+
         if not self.model.is_archived and self.pin_callback:
             pin_icon = "📌" if self.model.is_pinned else "📍"
-            pin_color = ("#c29200", "#ffcc00") if self.model.is_pinned else ("#999999", "#666666")
+            pin_color = st.PIN_ACTIVE if self.model.is_pinned else st.PIN_INACTIVE
             ctk.CTkButton(p_frame, text=pin_icon, width=28, height=28, fg_color="transparent",
-                          hover_color=("#e0e0e0", "#3a3a3a"), text_color=pin_color, font=("Helvetica", 16),
+                          hover_color=st.PIN_HOVER, text_color=pin_color, font=("Helvetica", 16),
                           command=lambda: self.pin_callback(self.model)).pack(side="left", padx=(5, 0))
 
-        if self.model.tags: ctk.CTkLabel(header, text=" ".join([f"#{t}" for t in self.model.tags]),
-                                         font=st.FONT_TAGS).grid(row=1, column=0, columnspan=2, sticky="w")
+        if self.model.tags:
+            ctk.CTkLabel(header, text=" ".join([f"#{t}" for t in self.model.tags]), font=st.FONT_TAGS).grid(row=1,
+                                                                                                            column=0,
+                                                                                                            columnspan=2,
+                                                                                                            sticky="w")
 
         dl = self.model.days_left
         dl_text, dl_color = "", st.TIME_COLORS["none"]
         if dl is not None:
             if dl < 0:
-                dl_color, dl_text = st.TIME_COLORS["overdue"], f"Po terminie ({-dl} dni temu)"
+                dl_color, dl_text = st.TIME_COLORS["overdue"], tr("tile_overdue", -dl)
             elif dl == 0:
-                dl_color, dl_text = st.TIME_COLORS["today"], "Termin mija DZIŚ!"
+                dl_color, dl_text = st.TIME_COLORS["today"], tr("tile_today")
             elif dl == 1:
-                dl_color, dl_text = st.TIME_COLORS["1_3"], "Został 1 dzień"
+                dl_color, dl_text = st.TIME_COLORS["1_3"], tr("tile_1_day")
             else:
                 if dl <= 3:
                     dl_color = st.TIME_COLORS["1_3"]
@@ -88,22 +95,20 @@ class ProjectTileWidget(ctk.CTkFrame):
                     dl_color = st.TIME_COLORS["8_14"]
                 else:
                     dl_color = st.TIME_COLORS["15_plus"]
-                dl_text = f"Zostało: {dl} dni ({self.model.deadline})"
+                dl_text = tr("tile_days_left", dl, self.model.deadline)
 
-        if dl_text: ctk.CTkLabel(self, text=f"⏱️ {dl_text}", font=st.FONT_TAGS, text_color=dl_color).grid(row=1,
-                                                                                                          column=0,
-                                                                                                          sticky="w",
-                                                                                                          padx=10,
-                                                                                                          pady=(0, 5))
+        if dl_text:
+            ctk.CTkLabel(self, text=f"⏱️ {dl_text}", font=st.FONT_TAGS, text_color=dl_color).grid(row=1, column=0,
+                                                                                                  sticky="w", padx=10,
+                                                                                                  pady=(0, 5))
 
         if not self.is_compact:
             content_frame = ctk.CTkFrame(self, fg_color="transparent")
             content_frame.grid(row=2, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-            if self.model.content.get("text"): ctk.CTkLabel(content_frame, text=self.model.content.get("text"),
-                                                            wraplength=250, justify="left").grid(row=0, column=0,
-                                                                                                 sticky="w",
-                                                                                                 pady=(0, 10))
+            if self.model.content.get("text"):
+                ctk.CTkLabel(content_frame, text=self.model.content.get("text"), wraplength=250, justify="left").grid(
+                    row=0, column=0, sticky="w", pady=(0, 10))
 
             todos = self.model.content.get("todos", [])
             if todos:
@@ -136,36 +141,38 @@ class ProjectTileWidget(ctk.CTkFrame):
         action_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=action_pad_y)
         btn_font = ("Helvetica", 11)
 
-        # --- ZMIANA: Widok przycisków w zależności od statusu Archiwum ---
         if self.model.is_archived:
-            if self.recover_callback: ctk.CTkButton(action_frame, text="♻️ Odzyskaj", width=70, font=btn_font,
-                                                    fg_color="green", hover_color="darkgreen",
+            if self.recover_callback: ctk.CTkButton(action_frame, text=tr("btn_recover"), width=70, font=btn_font,
+                                                    fg_color=st.BTN_DONE["fg"], hover_color=st.BTN_DONE["hover"],
                                                     command=lambda: self.recover_callback(self.model)).pack(side="left",
                                                                                                             padx=2)
-            if self.permadelete_callback: ctk.CTkButton(action_frame, text="🔥 Usuń bezpowrotnie", width=120,
-                                                        font=btn_font, fg_color="#8b0000", hover_color="#5c0000",
+            if self.permadelete_callback: ctk.CTkButton(action_frame, text=tr("btn_permadelete"), width=120,
+                                                        font=btn_font, fg_color=st.BTN_DELETE["fg"],
+                                                        hover_color=st.BTN_DELETE["hover"],
                                                         command=lambda: self.permadelete_callback(self.model)).pack(
                 side="right", padx=2)
         else:
             if self.model.has_workflow and not self.model.is_completed and self.open_workflow_callback:
-                ctk.CTkButton(action_frame, text="🗺️ Workflow", width=80, font=btn_font, fg_color="#1f538d",
+                ctk.CTkButton(action_frame, text=tr("btn_workflow"), width=80, font=btn_font,
+                              fg_color=st.BTN_WORKFLOW["fg"], hover_color=st.BTN_WORKFLOW["hover"],
                               command=lambda: self.open_workflow_callback(self.model)).pack(side="left", padx=(2, 10))
 
             if self.model.is_completed:
-                if self.restore_callback: ctk.CTkButton(action_frame, text="⏪ Przywróć", width=70, font=btn_font,
-                                                        fg_color="#d48806", hover_color="#b07004",
+                if self.restore_callback: ctk.CTkButton(action_frame, text=tr("btn_restore"), width=70, font=btn_font,
+                                                        fg_color=st.BTN_RESTORE["fg"],
+                                                        hover_color=st.BTN_RESTORE["hover"],
                                                         command=lambda: self.restore_callback(self.model)).pack(
                     side="left", padx=2)
             else:
-                if self.edit_callback: ctk.CTkButton(action_frame, text="✏️ Edytuj", width=60, font=btn_font,
+                if self.edit_callback: ctk.CTkButton(action_frame, text=tr("btn_edit"), width=60, font=btn_font,
                                                      command=lambda: self.edit_callback(self.model)).pack(side="left",
                                                                                                           padx=2)
-                if self.complete_callback: ctk.CTkButton(action_frame, text="✅ Zrobione", width=70, font=btn_font,
-                                                         fg_color="green", hover_color="darkgreen",
+                if self.complete_callback: ctk.CTkButton(action_frame, text=tr("btn_done"), width=70, font=btn_font,
+                                                         fg_color=st.BTN_DONE["fg"], hover_color=st.BTN_DONE["hover"],
                                                          command=lambda: self.complete_callback(self.model)).pack(
                     side="left", padx=2)
-            if self.archive_callback: ctk.CTkButton(action_frame, text="🗑️ Usuń", width=50, font=btn_font,
-                                                    fg_color="#8b0000", hover_color="#5c0000",
+            if self.archive_callback: ctk.CTkButton(action_frame, text=tr("btn_delete"), width=50, font=btn_font,
+                                                    fg_color=st.BTN_DELETE["fg"], hover_color=st.BTN_DELETE["hover"],
                                                     command=lambda: self.archive_callback(self.model)).pack(
                 side="right", padx=2)
 
@@ -174,12 +181,13 @@ class ProjectTileWidget(ctk.CTkFrame):
         done = sum(1 for t in todos if t.get("is_done"))
         val = done / total if total > 0 else 0
         pct = int(val * 100)
-        self.prog_lbl.configure(text=f"Postęp: {done}/{total} ({pct}%)")
+        self.prog_lbl.configure(text=tr("progress", done, total, pct))
         self.prog_bar.set(val)
-        if pct == 100:
-            prog_color = "#00cc00"
-        elif pct >= 50:
-            prog_color = "#e6b800"
-        else:
-            prog_color = "#cc4400"
+
+        # ZMIANA: Dynamiczne czytanie progów z pliku settings
+        prog_color = st.PROGRESS_BAR_COLORS[0]
+        for threshold in sorted(st.PROGRESS_BAR_COLORS.keys()):
+            if pct >= threshold:
+                prog_color = st.PROGRESS_BAR_COLORS[threshold]
+
         self.prog_bar.configure(progress_color=prog_color)

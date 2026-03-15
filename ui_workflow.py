@@ -5,6 +5,7 @@ import math
 import uuid
 from datetime import datetime
 from ui_dialogs import ExportDialog, NodeEditDialog, EdgeEditDialog
+from translations import tr
 
 try:
     from PIL import ImageGrab
@@ -12,27 +13,91 @@ try:
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
+
 GRID_SIZE = 20
+
 
 def snap(val):
     return round(val / 20) * 20
 
 
-def get_round_rect_points(x1, y1, x2, y2, r=12):
-    return [
-        x1 + r, y1, x1 + r, y1, x2 - r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y1 + r,
-        x2, y2 - r, x2, y2 - r, x2, y2, x2 - r, y2, x2 - r, y2, x1 + r, y2, x1 + r, y2,
-        x1, y2, x1, y2 - r, x1, y2 - r, x1, y1 + r, x1, y1 + r, x1, y1
-    ]
+def darken_hex(hex_color, factor=0.7):
+    if not hex_color or not isinstance(hex_color, str) or not hex_color.startswith("#") or len(hex_color) != 7:
+        return "#1a1a1a"
+    try:
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+        r = max(0, int(r * factor))
+        g = max(0, int(g * factor))
+        b = max(0, int(b * factor))
+        return f"#{r:02x}{g:02x}{b:02x}"
+    except Exception:
+        return "#1a1a1a"
+
+
+def get_oval_points(x1, y1, x2, y2, steps=40):
+    pts = []
+    cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+    rx, ry = (x2 - x1) / 2, (y2 - y1) / 2
+    for i in range(steps):
+        angle = -math.pi / 2 + 2 * math.pi * i / steps
+        pts.append((cx + rx * math.cos(angle), cy + ry * math.sin(angle)))
+    return pts
+
+
+def get_rounded_rect_points_exact(x1, y1, x2, y2, r, steps=10):
+    pts = []
+    r = min(r, (x2 - x1) / 2, (y2 - y1) / 2)
+    for i in range(steps + 1):
+        angle = -math.pi / 2 + (math.pi / 2) * (i / steps)
+        pts.append((x2 - r + r * math.cos(angle), y1 + r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = 0 + (math.pi / 2) * (i / steps)
+        pts.append((x2 - r + r * math.cos(angle), y2 - r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = math.pi / 2 + (math.pi / 2) * (i / steps)
+        pts.append((x1 + r + r * math.cos(angle), y2 - r + r * math.sin(angle)))
+    for i in range(steps + 1):
+        angle = math.pi + (math.pi / 2) * (i / steps)
+        pts.append((x1 + r + r * math.cos(angle), y1 + r + r * math.sin(angle)))
+    return pts
+
+
+def clip_polygon_top(pts, sep_y):
+    clipped = []
+    if not pts: return clipped
+    for i in range(len(pts)):
+        p1 = pts[i]
+        p2 = pts[(i + 1) % len(pts)]
+        if p1[1] <= sep_y:
+            clipped.append(p1)
+            if p2[1] > sep_y:
+                t = (sep_y - p1[1]) / (p2[1] - p1[1]) if p2[1] != p1[1] else 0
+                ix = p1[0] + t * (p2[0] - p1[0])
+                clipped.append((ix, sep_y))
+        else:
+            if p2[1] <= sep_y:
+                t = (sep_y - p1[1]) / (p2[1] - p1[1]) if p2[1] != p1[1] else 0
+                ix = p1[0] + t * (p2[0] - p1[0])
+                clipped.append((ix, sep_y))
+    return clipped
+
+
 def get_key(d, val, default):
     for k, v in d.items():
         if v == val: return k
     return default
 
+
 class CanvasNode:
-    def __init__(self, wf, x, y, text, node_type="block", node_id=None, color=None, border_color=None, width=160,
-                 height=80, shape="rect", header="", priority="medium", deadline="", tags="", show_days_left=False,
-                 group_id=None, font_family="Helvetica", font_size=12, font_color=None):
+    def __init__(self, wf, x, y, text, node_type="block", node_id=None, color=None, border_color=None, border_width=2,
+                 width=160, height=80, shape="rect", header="", priority="medium", deadline="", tags="",
+                 show_days_left=False, group_id=None,
+                 font_family="Helvetica", font_size=12, font_color=None,
+                 header_font_family="Helvetica", header_font_size=10, header_font_color=None,
+                 tags_font_family="Helvetica", tags_font_size=10, tags_font_color=None,
+                 date_font_family="Helvetica", date_font_size=10, date_font_color=None):
         self.wf = wf
         self.canvas = wf.canvas
         self.id = node_id if node_id else str(uuid.uuid4())
@@ -47,13 +112,28 @@ class CanvasNode:
         self.node_type = node_type
         self.color = color
         self.border_color = border_color
+        self.border_width = int(float(border_width))
         self.priority = priority
         self.deadline = deadline
         self.tags = tags
         self.show_days_left = show_days_left
+
         self.font_family = font_family
         self.font_size = int(float(font_size))
         self.font_color = font_color
+
+        self.header_font_family = header_font_family
+        self.header_font_size = int(float(header_font_size))
+        self.header_font_color = header_font_color
+
+        self.tags_font_family = tags_font_family
+        self.tags_font_size = int(float(tags_font_size))
+        self.tags_font_color = tags_font_color
+
+        self.date_font_family = date_font_family
+        self.date_font_size = int(float(date_font_size))
+        self.date_font_color = date_font_color
+
         self.selected = False
 
         self.bg_id = None;
@@ -63,21 +143,27 @@ class CanvasNode:
         self.proj_dot_id = None;
         self.proj_date_id = None;
         self.proj_tags_id = None
+        self.header_bg_id = None;
+        self.sep_line_id = None;
+        self.outline_id = None
         self.draw()
 
     def bring_to_front(self):
-        for item in [self.bg_id, self.header_id, self.text_id, self.proj_dot_id, self.proj_tags_id, self.proj_date_id,
+        for item in [self.bg_id, getattr(self, 'header_bg_id', None), getattr(self, 'sep_line_id', None),
+                     self.outline_id,
+                     self.header_id, self.text_id, self.proj_dot_id, self.proj_tags_id, self.proj_date_id,
                      self.handle_id]:
             if item: self.canvas.tag_raise(item)
 
     def send_to_back(self):
         for item in [self.handle_id, self.proj_date_id, self.proj_tags_id, self.proj_dot_id, self.text_id,
-                     self.header_id, self.bg_id]:
+                     self.header_id, self.outline_id, getattr(self, 'sep_line_id', None),
+                     getattr(self, 'header_bg_id', None), self.bg_id]:
             if item: self.canvas.tag_lower(item)
         for e in self.wf.edges.values():
             self.canvas.tag_lower(e.line_id)
-            if e.label_bg_id: self.canvas.tag_lower(e.label_bg_id)
-            if e.label_id: self.canvas.tag_lower(e.label_id)
+            if getattr(e, "label_bg_id", None): self.canvas.tag_lower(e.label_bg_id)
+            if getattr(e, "label_id", None): self.canvas.tag_lower(e.label_id)
         self.canvas.tag_lower("grid")
 
     def get_port_point(self, target_x, target_y):
@@ -97,9 +183,10 @@ class CanvasNode:
         x1, y1 = sx - sw / 2, sy - sh / 2
         x2, y2 = sx + sw / 2, sy + sh / 2
 
-        base_f_size = int(self.font_size * z)
-        font_style = (self.font_family, max(4, base_f_size), "bold")
-        header_font_style = (self.font_family, max(4, int(base_f_size * 0.8)), "bold")
+        base_f_size = max(4, int(self.font_size * z))
+        font_style = (self.font_family, base_f_size, "bold")
+        base_h_size = max(4, int(self.header_font_size * z))
+        header_font_style = (self.header_font_family, base_h_size, "bold")
 
         if self.node_type == "text":
             outline_c = "#ffcc00" if self.selected else ""
@@ -122,99 +209,208 @@ class CanvasNode:
                 "#e67300" if self.node_type == "note" else "#2980b9")
 
         outline_color = "#ffcc00" if self.selected else outline_color
+        l_width = max(1, int(self.border_width * z))
 
         if self.shape == "oval":
-            self.bg_id = self.canvas.create_oval(x1, y1, x2, y2, fill=bg, outline=outline_color,
-                                                 width=max(1, int(2 * z)), tags=("node", self.id))
+            pts = get_oval_points(x1, y1, x2, y2)
         elif self.shape == "diamond":
-            pts = [sx, y1, x2, sy, sx, y2, x1, sy]
-            self.bg_id = self.canvas.create_polygon(pts, fill=bg, outline=outline_color, width=max(1, int(2 * z)),
-                                                    tags=("node", self.id))
+            pts = [(sx, y1), (x2, sy), (sx, y2), (x1, sy)]
         elif self.shape == "parallelogram":
             offset = sw * 0.15
-            pts = [x1 + offset, y1, x2, y1, x2 - offset, y2, x1, y2]
-            self.bg_id = self.canvas.create_polygon(pts, fill=bg, outline=outline_color, width=max(1, int(2 * z)),
-                                                    tags=("node", self.id))
+            pts = [(x1 + offset, y1), (x2, y1), (x2 - offset, y2), (x1, y2)]
+        elif self.shape == "hexagon":
+            offset = sw * 0.15
+            pts = [(x1 + offset, y1), (x2 - offset, y1), (x2, sy), (x2 - offset, y2), (x1 + offset, y2), (x1, sy)]
+        elif self.shape == "trapezoid":
+            offset = sw * 0.15
+            pts = [(x1, y1), (x2, y1), (x2 - offset, y2), (x1 + offset, y2)]
+        elif self.shape == "capsule":
+            r = min(sw, sh) / 2
+            pts = get_rounded_rect_points_exact(x1, y1, x2, y2, r)
         else:
-            pts = get_round_rect_points(x1, y1, x2, y2, r=12 * z)
-            self.bg_id = self.canvas.create_polygon(pts, smooth=True, fill=bg, outline=outline_color,
-                                                    width=max(1, int(2 * z)), tags=("node", self.id))
+            r = 12 * z
+            pts = get_rounded_rect_points_exact(x1, y1, x2, y2, r)
 
-        if self.font_color:
-            text_color = self.font_color
-            header_color = self.font_color
-        else:
-            text_color = "black" if bg in ["#ffffff", "#e6c280", "#888888"] else "#DCE4EE"
-            header_color = "#555555" if bg in ["#ffffff", "#e6c280", "#888888"] else "#dddddd"
+        flat_pts = [coord for p in pts for coord in p]
+        self.bg_id = self.canvas.create_polygon(flat_pts, fill=bg, outline="", tags=("node", self.id))
 
+        header_height = 0
+        wrap_w = sw - 20 * z
+        if self.shape in ["diamond", "oval", "hexagon"]:
+            wrap_w = sw * 0.65
+        elif self.shape in ["parallelogram", "trapezoid"]:
+            wrap_w = sw * 0.75
+
+        # 1. NAGŁÓWEK (Mierzony od góry y1)
         if self.header:
-            self.header_id = self.canvas.create_text(sx, sy - sh / 2 + 12 * z, text=self.header, fill=header_color,
-                                                     font=header_font_style, width=sw - 20 * z, justify="center",
+            max_h_lines = max(1, int((sh * 0.4) / (base_h_size * 1.2)))
+            h_chars_per_line = max(5, int(wrap_w / (base_h_size * 0.6)))
+            max_h_chars = h_chars_per_line * max_h_lines
+            header_display = self.header[:max_h_chars - 3] + "..." if len(self.header) > max_h_chars else self.header
+
+            header_y = y1 + base_h_size + (6 * z)
+            temp_id = self.canvas.create_text(sx, header_y, text=header_display, font=header_font_style, width=wrap_w)
+            bbox = self.canvas.bbox(temp_id)
+            if bbox:
+                header_height = bbox[3] - bbox[1] + (12 * z)
+            else:
+                header_height = base_h_size * 2 + (12 * z)
+            self.canvas.delete(temp_id)
+
+            header_height = min(header_height, sh * 0.6)
+            sep_y = y1 + header_height
+
+            clipped_pts = clip_polygon_top(pts, sep_y)
+            if clipped_pts:
+                flat_clipped = [coord for p in clipped_pts for coord in p]
+                dark_bg = darken_hex(bg, 0.7)
+                self.header_bg_id = self.canvas.create_polygon(flat_clipped, fill=dark_bg, outline="",
+                                                               tags=("node", self.id))
+
+            sep_points = [p for p in clipped_pts if abs(p[1] - sep_y) < 1e-4]
+            if len(sep_points) >= 2:
+                sep_points.sort(key=lambda p: p[0])
+                self.sep_line_id = self.canvas.create_line(sep_points[0][0], sep_y, sep_points[-1][0], sep_y,
+                                                           fill=outline_color, width=l_width, tags=("node", self.id))
+
+            if self.header_font_color:
+                header_color = self.header_font_color
+            else:
+                header_color = "#555555" if bg in ["#ffffff", "#e6c280", "#888888"] else "#dddddd"
+
+            self.header_id = self.canvas.create_text(sx, header_y, text=header_display, fill=header_color,
+                                                     font=header_font_style, width=wrap_w, justify="center",
                                                      tags=("node", self.id))
 
+        self.outline_id = self.canvas.create_polygon(flat_pts, fill="", outline=outline_color, width=l_width,
+                                                     tags=("node", self.id))
+
+        # 2. SEKCJA DOLNA (Mierzona od dołu y2 w górę, co zapobiega wychodzeniu za blok)
+        bottom_y = y2 - 8 * z
+
         if self.node_type == "project":
-            title_y = y1 + (25 * z if self.header else 15 * z)
-            self.text_id = self.canvas.create_text(x1 + 10 * z, title_y, text=self.text, fill=text_color,
-                                                   font=font_style, width=sw - 40 * z, anchor="w",
-                                                   tags=("node", self.id))
             dot_c = st.PRIORITY_COLORS.get(self.priority, ("gray", "gray"))[1]
-            pr = 4 * z
-            px, py = x2 - 15 * z, title_y
+            pr = max(2, int(4 * z))
+            px, py = x2 - 12 * z, bottom_y - pr
             self.proj_dot_id = self.canvas.create_oval(px - pr, py - pr, px + pr, py + pr, fill=dot_c, outline=dot_c,
                                                        tags=("node", self.id))
-            if self.tags:
-                self.proj_tags_id = self.canvas.create_text(x1 + 10 * z, title_y + 18 * z, text=" ".join(
-                    [f"#{t.strip()}" for t in self.tags.split(",")]), fill="#4da6ff",
-                                                            font=(self.font_family, max(4, int(base_f_size * 0.7)),
-                                                                  "italic"), width=sw - 20 * z, anchor="w",
-                                                            tags=("node", self.id))
+
             if self.deadline:
-                dl_color = "#aaaaaa";
+                dl_color = self.date_font_color if self.date_font_color else "#aaaaaa"
                 days_text = ""
                 try:
                     d_date = datetime.strptime(self.deadline, "%Y-%m-%d").date()
                     dl = (d_date - datetime.now().date()).days
-                    if dl < 0:
-                        dl_color = st.TIME_COLORS["overdue"][1]; days_text = f" ({-dl} dni po)"
-                    elif dl == 0:
-                        dl_color = st.TIME_COLORS["today"][1]; days_text = " (Dziś!)"
-                    elif dl == 1:
-                        dl_color = st.TIME_COLORS["1_3"][1]; days_text = " (jutro)"
-                    elif dl <= 3:
-                        dl_color = st.TIME_COLORS["1_3"][1]; days_text = f" ({dl} dni)"
-                    elif dl <= 14:
-                        dl_color = st.TIME_COLORS["8_14"][1]; days_text = f" ({dl} dni)"
-                    else:
-                        dl_color = st.TIME_COLORS["15_plus"][1]; days_text = f" ({dl} dni)"
+
+                    if not self.date_font_color:
+                        if dl < 0:
+                            dl_color = st.TIME_COLORS["overdue"][1]
+                        elif dl == 0:
+                            dl_color = st.TIME_COLORS["today"][1]
+                        elif dl == 1:
+                            dl_color = st.TIME_COLORS["1_3"][1]
+                        elif dl <= 14:
+                            dl_color = st.TIME_COLORS["8_14"][1]
+                        else:
+                            dl_color = st.TIME_COLORS["15_plus"][1]
+
+                    if self.show_days_left:
+                        if sw > 180 * z:
+                            if dl < 0:
+                                days_text = tr("wf_overdue", -dl)
+                            elif dl == 0:
+                                days_text = tr("wf_today")
+                            elif dl == 1:
+                                days_text = tr("wf_tomorrow")
+                            else:
+                                days_text = tr("wf_days_left", dl)
+                        else:
+                            days_text = f" ({dl}d)"
                 except ValueError:
                     pass
-                if not self.show_days_left: days_text = ""
-                self.proj_date_id = self.canvas.create_text(x1 + 10 * z, y2 - 15 * z,
-                                                            text=f"⏱ {self.deadline}{days_text}", fill=dl_color,
-                                                            font=header_font_style, width=sw - 20 * z, anchor="w",
-                                                            tags=("node", self.id))
+
+                date_str = f"⏱ {self.deadline}{days_text}"
+                date_font_style = (self.date_font_family, max(4, int(self.date_font_size * z)), "bold")
+
+                self.proj_date_id = self.canvas.create_text(x1 + 10 * z, bottom_y, text=date_str, fill=dl_color,
+                                                            font=date_font_style, anchor="sw", tags=("node", self.id))
+                bbox_d = self.canvas.bbox(self.proj_date_id)
+                if bbox_d:
+                    bottom_y -= (bbox_d[3] - bbox_d[1] + 4 * z)
+                else:
+                    bottom_y -= (self.date_font_size * z + 4 * z)
+
+            if self.tags:
+                tags_font_style = (self.tags_font_family, max(4, int(self.tags_font_size * z)), "italic")
+                t_col = self.tags_font_color if self.tags_font_color else "#4da6ff"
+                self.proj_tags_id = self.canvas.create_text(x1 + 10 * z, bottom_y, text=" ".join(
+                    [f"#{t.strip()}" for t in self.tags.split(",")]), fill=t_col, font=tags_font_style, width=wrap_w,
+                                                            anchor="sw", tags=("node", self.id))
+                bbox_t = self.canvas.bbox(self.proj_tags_id)
+                if bbox_t:
+                    bottom_y -= (bbox_t[3] - bbox_t[1] + 4 * z)
+                else:
+                    bottom_y -= (self.tags_font_size * z + 4 * z)
+
+        # 3. GŁÓWNY TEKST (Otrzymuje resztę miejsca dostępną w środku)
+        if self.font_color:
+            text_color = self.font_color
         else:
-            self.text_id = self.canvas.create_text(sx, sy + (10 * z if self.header else 0), text=self.text,
-                                                   fill=text_color, font=font_style, width=sw - 20 * z,
-                                                   justify="center", tags=("node", self.id))
+            text_color = "black" if bg in ["#ffffff", "#e6c280", "#888888"] else "#DCE4EE"
+
+        sep_y_final = y1 + header_height
+        available_h = bottom_y - sep_y_final - (6 * z) if self.node_type == "project" else sh - header_height - (10 * z)
+
+        display_text = self.text
+        if available_h < base_f_size:
+            display_text = ""
+        elif self.text:
+            chars_per_line = max(5, int(wrap_w / (base_f_size * 0.6)))
+            max_lines = max(1, int(available_h / (base_f_size * 1.2)))
+            max_chars = chars_per_line * max_lines
+            display_text = self.text[:max_chars - 3] + "..." if len(self.text) > max_chars else self.text
+
+        if self.node_type == "project":
+            # PADDING DLA KLOCKÓW PROJEKTOWYCH NA PŁÓTNIE
+            padding_y = 12 * z  # <--- TUTAJ ZWIĘKSZ/ZMNIEJSZ (np. z 4 na 12), by odsunąć tekst od linii
+            text_y = sep_y_final + padding_y
+            self.text_id = self.canvas.create_text(x1 + 10 * z, text_y, text=display_text, fill=text_color,
+                                                   font=font_style, width=wrap_w, anchor="nw", tags=("node", self.id))
+        else:
+            # CENTROWANIE DLA ZWYKŁYCH KLOCKÓW (Romb, Elipsa)
+            if self.shape in ["diamond", "oval", "hexagon"] and self.header:
+                # Najszersze miejsce rombu to środek (sy). Ściągamy tekst wyżej, by nie wpadł w wąski dół!
+                text_y = max(sy + (4 * z), sep_y_final + (8 * z))
+            else:
+                # Zwykłe centrowanie dla prostokątów
+                text_y = sep_y_final + (available_h / 2) + (5 * z)
+
+            self.text_id = self.canvas.create_text(sx, text_y, text=display_text, fill=text_color, font=font_style,
+                                                   width=wrap_w, justify="center", tags=("node", self.id))
 
         self.handle_id = self.canvas.create_rectangle(x2 - 12 * z, y2 - 12 * z, x2, y2, fill="white", outline="#333",
                                                       tags=("handle", self.id),
                                                       state="normal" if self.selected else "hidden")
 
     def clear_graphics(self):
-        for item in [self.bg_id, self.text_id, self.header_id, self.handle_id, self.proj_dot_id, self.proj_date_id,
+        for item in [self.bg_id, getattr(self, 'header_bg_id', None), getattr(self, 'sep_line_id', None),
+                     self.outline_id, self.text_id, self.header_id, self.handle_id, self.proj_dot_id, self.proj_date_id,
                      self.proj_tags_id]:
             if item: self.canvas.delete(item)
 
     def move_to(self, x, y):
-        self.x = x; self.y = y; self.draw()
+        self.x = x;
+        self.y = y;
+        self.draw()
 
     def resize(self, w, h):
-        self.width = max(50, w); self.height = max(30, h); self.draw()
+        self.width = max(50, w);
+        self.height = max(30, h);
+        self.draw()
 
     def set_selected(self, state):
-        self.selected = state; self.draw()
+        self.selected = state;
+        self.draw()
 
     def update_properties(self, data):
         self.text = data.get("text", self.text);
@@ -223,13 +419,28 @@ class CanvasNode:
         self.node_type = data.get("node_type", data.get("type", self.node_type))
         self.color = data.get("color", self.color);
         self.border_color = data.get("border_color", self.border_color)
+        self.border_width = int(data.get("border_width", self.border_width))
         self.priority = data.get("priority", "medium");
         self.deadline = data.get("deadline", "")
         self.tags = data.get("tags", "");
         self.show_days_left = data.get("show_days_left", False)
-        self.font_family = data.get("font_family", "Helvetica");
+
+        self.font_family = data.get("font_family", "Helvetica")
         self.font_size = int(data.get("font_size", 12))
         self.font_color = data.get("font_color", None)
+
+        self.header_font_family = data.get("header_font_family", "Helvetica")
+        self.header_font_size = int(data.get("header_font_size", 10))
+        self.header_font_color = data.get("header_font_color", None)
+
+        self.tags_font_family = data.get("tags_font_family", "Helvetica")
+        self.tags_font_size = int(data.get("tags_font_size", 10))
+        self.tags_font_color = data.get("tags_font_color", None)
+
+        self.date_font_family = data.get("date_font_family", "Helvetica")
+        self.date_font_size = int(data.get("date_font_size", 10))
+        self.date_font_color = data.get("date_font_color", None)
+
         self.resize(data.get("width", self.width), data.get("height", self.height));
         self.draw()
 
@@ -241,10 +452,17 @@ class CanvasNode:
             "id": self.id, "x": self.x, "y": self.y, "text": self.text, "header": self.header,
             "type": self.node_type, "shape": self.shape, "color": self.color,
             "border_color": getattr(self, 'border_color', None),
+            "border_width": self.border_width,
             "width": self.width, "height": self.height, "priority": getattr(self, 'priority', 'medium'),
             "deadline": getattr(self, 'deadline', ''), "tags": getattr(self, 'tags', ''),
             "show_days_left": getattr(self, 'show_days_left', False), "group_id": self.group_id,
-            "font_family": self.font_family, "font_size": self.font_size, "font_color": self.font_color
+            "font_family": self.font_family, "font_size": self.font_size, "font_color": self.font_color,
+            "header_font_family": self.header_font_family, "header_font_size": self.header_font_size,
+            "header_font_color": self.header_font_color,
+            "tags_font_family": self.tags_font_family, "tags_font_size": self.tags_font_size,
+            "tags_font_color": self.tags_font_color,
+            "date_font_family": self.date_font_family, "date_font_size": self.date_font_size,
+            "date_font_color": self.date_font_color
         }
 
 
@@ -288,10 +506,10 @@ class CanvasEdge:
         return best_idx
 
     def draw(self):
-        if self.line_id: self.canvas.delete(self.line_id)
-        if self.label_id: self.canvas.delete(self.label_id)
-        if self.label_bg_id: self.canvas.delete(self.label_bg_id)
-        for hid in self.handle_ids: self.canvas.delete(hid)
+        if getattr(self, "line_id", None): self.canvas.delete(self.line_id)
+        if getattr(self, "label_id", None): self.canvas.delete(self.label_id)
+        if getattr(self, "label_bg_id", None): self.canvas.delete(self.label_bg_id)
+        for hid in getattr(self, "handle_ids", []): self.canvas.delete(hid)
         self.handle_ids = []
         z = self.wf.zoom
         dash_pattern = (int(5 * z), int(5 * z)) if self.dashed else None
@@ -367,7 +585,8 @@ class CanvasEdge:
             self.canvas.tag_raise(self.handle_ids[i])
 
     def set_selected(self, state):
-        self.selected = state; self.update_position()
+        self.selected = state;
+        self.update_position()
 
     def update_properties(self, direction, color, dashed, line_width, label=""):
         self.direction = direction;
@@ -429,23 +648,22 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         header = ctk.CTkFrame(self, height=50, fg_color="transparent")
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
-        ctk.CTkButton(header, text="< Wróć do listy", width=100, command=self.close_callback).pack(side="left",
-                                                                                                   padx=(0, 20))
+        ctk.CTkButton(header, text=tr("back_to_list"), width=100, command=self.close_callback).pack(side="left",
+                                                                                                    padx=(0, 20))
         ctk.CTkLabel(header, text=f"📍 Workflow: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
 
         self.coord_lbl = ctk.CTkLabel(header, text="X: 0 | Y: 0", text_color="gray", font=("Helvetica", 12, "bold"))
         self.coord_lbl.pack(side="right", padx=(20, 0))
 
-        # Przycisk Pomocy do Workflow
-        ctk.CTkButton(header, text="❓ Pomoc", width=70, fg_color="#1f538d", command=self.show_help).pack(side="right",
-                                                                                                         padx=(10, 0))
+        ctk.CTkButton(header, text=tr("btn_help"), width=70, fg_color="#1f538d", command=self.show_help).pack(
+            side="right", padx=(10, 0))
 
-        if HAS_PIL: ctk.CTkButton(header, text="📸 Eksportuj", width=100, fg_color="#1f538d",
+        if HAS_PIL: ctk.CTkButton(header, text=tr("btn_export"), width=100, fg_color="#1f538d",
                                   command=self.export_image).pack(side="right", padx=(10, 0))
-        self.save_btn = ctk.CTkButton(header, text="💾 Zapisz", width=100, fg_color="green", hover_color="darkgreen",
+        self.save_btn = ctk.CTkButton(header, text=tr("btn_save"), width=100, fg_color="green", hover_color="darkgreen",
                                       command=self.save_workflow)
         self.save_btn.pack(side="right", padx=(10, 0))
-        ctk.CTkButton(header, text="🗑️ Wyczyść", width=100, fg_color="#8b0000", hover_color="#5c0000",
+        ctk.CTkButton(header, text=tr("btn_clear"), width=100, fg_color="#8b0000", hover_color="#5c0000",
                       command=self.clear_canvas).pack(side="right")
 
         self.toolbar = ctk.CTkFrame(self, width=180)
@@ -454,7 +672,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.toolbar_bottom = ctk.CTkFrame(self.toolbar, fg_color="transparent")
         self.toolbar_bottom.pack(side="bottom", fill="x", pady=5)
 
-        ctk.CTkButton(self.toolbar_bottom, text="🏠 Zresetuj Widok", width=120, command=self.reset_view).pack(
+        ctk.CTkButton(self.toolbar_bottom, text=tr("reset_view"), width=120, command=self.reset_view).pack(
             side="bottom", pady=10)
 
         zoom_frame = ctk.CTkFrame(self.toolbar_bottom, fg_color="transparent")
@@ -466,23 +684,23 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         bg_frame = ctk.CTkFrame(self.toolbar_bottom, fg_color="transparent")
         bg_frame.pack(side="bottom", pady=10)
-        ctk.CTkLabel(bg_frame, text="Kolor Tła:", font=("Helvetica", 10)).pack()
+        ctk.CTkLabel(bg_frame, text=tr("bg_color_wf"), font=("Helvetica", 10)).pack()
         self.canvas_bg_var = ctk.StringVar()
 
         loaded_bg = self.model.workflow_data.get("canvas_bg", "#1a1a1a")
-        current_bg_name = get_key(st.WORKFLOW_BG_COLORS, loaded_bg, "Ciemne")
-        self.canvas_bg_var.set(current_bg_name)
-        ctk.CTkOptionMenu(bg_frame, values=list(st.WORKFLOW_BG_COLORS.keys()), variable=self.canvas_bg_var,
+        current_bg_key = get_key(st.WORKFLOW_BG_COLORS, loaded_bg, list(st.WORKFLOW_BG_COLORS.keys())[0])
+        self.canvas_bg_var.set(tr(current_bg_key))
+        ctk.CTkOptionMenu(bg_frame, values=[tr(k) for k in st.WORKFLOW_BG_COLORS.keys()], variable=self.canvas_bg_var,
                           command=self.change_canvas_bg, width=120).pack(pady=2)
 
         self.toolbar_scroll = ctk.CTkScrollableFrame(self.toolbar, fg_color="transparent", width=170)
         self.toolbar_scroll.pack(side="top", fill="both", expand=True)
 
-        ctk.CTkLabel(self.toolbar_scroll, text="Narzędzia", font=st.FONT_TITLE).pack(pady=(10, 10))
+        ctk.CTkLabel(self.toolbar_scroll, text=tr("tools"), font=st.FONT_TITLE).pack(pady=(10, 10))
 
         self.current_mode = tk.StringVar(value="move")
-        tools = [("🖱️ Przesuwaj", "move"), ("✋ Przesuń Widok", "pan"), ("🔲 Dodaj Blok", "add_block"),
-                 ("↗️ Połącz", "add_edge"), ("🪢 Wyginaj Linie", "bend"), ("❌ Usuń element", "delete")]
+        tools = [(tr("tool_move"), "move"), (tr("tool_pan"), "pan"), (tr("tool_add_block"), "add_block"),
+                 (tr("tool_add_edge"), "add_edge"), (tr("tool_bend"), "bend"), (tr("tool_delete"), "delete")]
         for text, mode in tools:
             rb = ctk.CTkRadioButton(self.toolbar_scroll, text=text, variable=self.current_mode, value=mode,
                                     font=("Helvetica", 13), command=self.on_tool_changed)
@@ -492,28 +710,28 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.context_frame.pack(fill="x", padx=5, pady=5)
 
         self.block_options = ctk.CTkFrame(self.context_frame, fg_color="transparent")
-        ctk.CTkLabel(self.block_options, text="Typ Bloku:", font=("Helvetica", 11)).pack()
-        self.new_node_type = ctk.StringVar(value="Zwykły Blok")
-        ctk.CTkOptionMenu(self.block_options, values=list(st.NODE_TYPES.keys()), variable=self.new_node_type,
+        ctk.CTkLabel(self.block_options, text=tr("block_type"), font=("Helvetica", 11)).pack()
+        self.new_node_type = ctk.StringVar(value=tr(list(st.NODE_TYPES.keys())[0]))
+        ctk.CTkOptionMenu(self.block_options, values=[tr(k) for k in st.NODE_TYPES.keys()], variable=self.new_node_type,
                           width=120).pack(pady=2)
 
         self.edge_options = ctk.CTkFrame(self.context_frame, fg_color="transparent")
-        ctk.CTkLabel(self.edge_options, text="Kierunek:", font=("Helvetica", 11)).pack(pady=(0, 2))
-        self.new_edge_dir = ctk.StringVar(value="A ➔ B (Domyślny)")
-        ctk.CTkOptionMenu(self.edge_options, values=list(st.EDGE_DIRECTIONS.keys()), variable=self.new_edge_dir,
-                          width=120).pack(pady=2)
+        ctk.CTkLabel(self.edge_options, text=tr("arrow_type"), font=("Helvetica", 11)).pack(pady=(0, 2))
+        self.new_edge_dir = ctk.StringVar(value=tr(list(st.EDGE_DIRECTIONS.keys())[0]))
+        ctk.CTkOptionMenu(self.edge_options, values=[tr(k) for k in st.EDGE_DIRECTIONS.keys()],
+                          variable=self.new_edge_dir, width=120).pack(pady=2)
 
-        ctk.CTkLabel(self.edge_options, text="Kolor Linii:", font=("Helvetica", 11)).pack(pady=(5, 2))
-        self.new_edge_color = ctk.StringVar(value="Szary (Domyślny)")
-        ctk.CTkOptionMenu(self.edge_options, values=list(st.EDGE_COLORS.keys()), variable=self.new_edge_color,
-                          width=120).pack(pady=2)
+        ctk.CTkLabel(self.edge_options, text=tr("line_color"), font=("Helvetica", 11)).pack(pady=(5, 2))
+        self.new_edge_color = ctk.StringVar(value=tr(list(st.EDGE_COLORS.keys())[0]))
+        ctk.CTkOptionMenu(self.edge_options, values=[tr(k) for k in st.EDGE_COLORS.keys()],
+                          variable=self.new_edge_color, width=120).pack(pady=2)
 
-        ctk.CTkLabel(self.edge_options, text="Grubość:", font=("Helvetica", 11)).pack(pady=(5, 2))
+        ctk.CTkLabel(self.edge_options, text=tr("line_thickness"), font=("Helvetica", 11)).pack(pady=(5, 2))
         self.new_edge_width = ctk.StringVar(value="2")
         ctk.CTkOptionMenu(self.edge_options, values=st.EDGE_WIDTHS, variable=self.new_edge_width, width=120).pack(
             pady=2)
         self.new_edge_dashed = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(self.edge_options, text="Przerywana", variable=self.new_edge_dashed).pack(pady=10)
+        ctk.CTkCheckBox(self.edge_options, text=tr("dashed_line"), variable=self.new_edge_dashed).pack(pady=10)
 
         self.canvas_container = ctk.CTkFrame(self)
         self.canvas_container.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=(0, 20))
@@ -568,7 +786,9 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.after(100, self.load_workflow)
 
     def change_canvas_bg(self, choice):
-        c = st.WORKFLOW_BG_COLORS.get(choice, "#1a1a1a")
+        from translations import rev_tr
+        act_key = rev_tr(choice, list(st.WORKFLOW_BG_COLORS.keys()))
+        c = st.WORKFLOW_BG_COLORS.get(act_key, "#1a1a1a")
         self.canvas.config(bg=c)
         self.mark_unsaved()
         for e in self.edges.values(): e.update_position()
@@ -593,6 +813,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
     def show_help(self):
         from ui_dialogs import HelpDialog
         HelpDialog(self, context="workflow")
+
     def update_minimap(self):
         self.minimap.delete("all")
 
@@ -708,9 +929,9 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 img = img.convert("RGB")
 
             img.save(filepath)
-            tk.messagebox.showinfo("Eksport", "Zapisano poprawnie!")
+            tk.messagebox.showinfo(tr("export_title"), tr("export_success"))
         except Exception as e:
-            tk.messagebox.showerror("Błąd", f"Nie udało się zapisać: {e}")
+            tk.messagebox.showerror("Error", tr("export_error", e))
         finally:
             self.canvas.config(bg=old_bg)
             self.canvas.itemconfig("grid", state="normal")
@@ -719,7 +940,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
     def mark_unsaved(self):
         if not self.has_unsaved_changes:
             self.has_unsaved_changes = True
-            self.save_btn.configure(fg_color="#d47300", hover_color="#a35800", text="💾 Zapisz *")
+            self.save_btn.configure(fg_color="#d47300", hover_color="#a35800", text=tr("btn_save_star"))
 
     def push_to_history(self):
         state = {"nodes": [n.to_dict() for n in self.nodes.values()],
@@ -824,12 +1045,19 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 self, px, py, n_data["text"],
                 node_type=n_data["type"], node_id=new_id,
                 color=n_data["color"], border_color=n_data.get("border_color"),
+                border_width=n_data.get("border_width", 2),
                 width=n_data["width"], height=n_data["height"], shape=n_data["shape"], header=n_data["header"],
                 priority=n_data.get("priority", "medium"), deadline=n_data.get("deadline", ""),
                 tags=n_data.get("tags", ""),
                 show_days_left=n_data.get("show_days_left", False), group_id=n_data.get("group_id"),
                 font_family=n_data.get("font_family", "Helvetica"), font_size=n_data.get("font_size", 12),
-                font_color=n_data.get("font_color")
+                font_color=n_data.get("font_color"),
+                header_font_family=n_data.get("header_font_family", "Helvetica"),
+                header_font_size=n_data.get("header_font_size", 10), header_font_color=n_data.get("header_font_color"),
+                tags_font_family=n_data.get("tags_font_family", "Helvetica"),
+                tags_font_size=n_data.get("tags_font_size", 10), tags_font_color=n_data.get("tags_font_color"),
+                date_font_family=n_data.get("date_font_family", "Helvetica"),
+                date_font_size=n_data.get("date_font_size", 10), date_font_color=n_data.get("date_font_color")
             )
             node.set_selected(True)
             self.nodes[node.id] = node
@@ -1006,10 +1234,12 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         item = self.canvas.find_withtag("current")
 
         if mode == "add_block":
-            dialog = ctk.CTkInputDialog(text="Wpisz nazwę:", title="Nowy element")
+            from translations import rev_tr
+            dialog = ctk.CTkInputDialog(text=tr("enter_name"), title=tr("new_element"))
             text = dialog.get_input()
             if text:
-                ntype = st.NODE_TYPES.get(self.new_node_type.get(), "block")
+                act_type = rev_tr(self.new_node_type.get(), list(st.NODE_TYPES.keys()))
+                ntype = st.NODE_TYPES.get(act_type, "block")
                 h = 100 if ntype == "project" else 80
                 new_node = CanvasNode(self, snap(logical_x), snap(logical_y), text, node_type=ntype, height=h)
                 self.nodes[new_node.id] = new_node
@@ -1033,6 +1263,9 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                     clicked_node_id = tags[1]
                 elif "handle" in tags and len(tags) > 1:
                     clicked_handle_id = tags[1]
+                    self.resizing_node = self.nodes.get(clicked_handle_id)
+                    self.resize_start_w = self.resizing_node.width
+                    self.resize_start_h = self.resizing_node.height
                 elif "waypoint" in tags and len(tags) > 2:
                     edge_id, wp_idx = tags[1], int(tags[2])
                     self.dragged_waypoint = (self.edges.get(edge_id), wp_idx)
@@ -1044,7 +1277,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             is_ctrl_pressed = (event.state & 0x0004) != 0
 
             if clicked_handle_id:
-                self.resizing_node = self.nodes.get(clicked_handle_id)
                 for n in self.nodes.values(): n.set_selected(n.id == self.resizing_node.id)
                 self.draw_group_selection()
             elif clicked_node_id:
@@ -1111,10 +1343,13 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             if getattr(self, "drawing_state", None):
                 if clicked_node:
                     if clicked_node != self.drawing_state["node"]:
-                        c = st.EDGE_COLORS.get(self.new_edge_color.get(), "#888888")
+                        from translations import rev_tr
+                        act_col = rev_tr(self.new_edge_color.get(), list(st.EDGE_COLORS.keys()))
+                        act_dir = rev_tr(self.new_edge_dir.get(), list(st.EDGE_DIRECTIONS.keys()))
+                        c = st.EDGE_COLORS.get(act_col, "#888888")
                         d = self.new_edge_dashed.get()
                         w = int(self.new_edge_width.get())
-                        dir_val = st.EDGE_DIRECTIONS.get(self.new_edge_dir.get(), "last")
+                        dir_val = st.EDGE_DIRECTIONS.get(act_dir, "last")
 
                         new_edge = CanvasEdge(
                             self, self.drawing_state["node"], clicked_node,
@@ -1129,11 +1364,14 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                     self.drawing_state["waypoints"].append([snap(logical_x), snap(logical_y)])
             else:
                 if clicked_node:
+                    from translations import rev_tr
                     self.drawing_state = {"node": clicked_node, "waypoints": []}
-                    c = st.EDGE_COLORS.get(self.new_edge_color.get(), "#888888")
+                    act_col = rev_tr(self.new_edge_color.get(), list(st.EDGE_COLORS.keys()))
+                    act_dir = rev_tr(self.new_edge_dir.get(), list(st.EDGE_DIRECTIONS.keys()))
+                    c = st.EDGE_COLORS.get(act_col, "#888888")
                     d = (5, 5) if self.new_edge_dashed.get() else ""
                     w = int(self.new_edge_width.get())
-                    dir_val = st.EDGE_DIRECTIONS.get(self.new_edge_dir.get(), "last")
+                    dir_val = st.EDGE_DIRECTIONS.get(act_dir, "last")
                     arrow_val = {"last": tk.LAST, "first": tk.FIRST, "both": tk.BOTH, "none": tk.NONE}.get(dir_val,
                                                                                                            tk.LAST)
                     self.temp_line = self.canvas.create_line(cx, cy, cx, cy, dash=d, fill=c,
@@ -1184,9 +1422,20 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 edge.update_position()
                 self.was_dragged = True
 
-            elif self.resizing_node:
-                new_w = snap((logical_x - self.resizing_node.x) * 2)
-                new_h = snap((logical_y - self.resizing_node.y) * 2)
+            elif getattr(self, "resizing_node", None):
+                new_w = (logical_x - self.resizing_node.x) * 2
+                new_h = (logical_y - self.resizing_node.y) * 2
+
+                if (event.state & 0x0001) != 0:
+                    aspect = self.resize_start_w / self.resize_start_h if self.resize_start_h != 0 else 1
+                    if new_w > new_h * aspect:
+                        new_h = new_w / aspect
+                    else:
+                        new_w = new_h * aspect
+
+                new_w = snap(new_w)
+                new_h = snap(new_h)
+
                 self.resizing_node.resize(new_w, new_h)
                 for edge in self.edges.values(): edge.update_position()
                 self.was_dragged = True
@@ -1296,12 +1545,19 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
     def duplicate_node(self, node):
         new_node = CanvasNode(
             self, snap(node.x + 40), snap(node.y + 40), node.text, node.node_type,
-            color=node.color, border_color=getattr(node, 'border_color', None), width=node.width, height=node.height,
+            color=node.color, border_color=getattr(node, 'border_color', None),
+            border_width=getattr(node, 'border_width', 2), width=node.width, height=node.height,
             shape=node.shape, header=node.header, priority=getattr(node, 'priority', 'medium'),
             deadline=getattr(node, 'deadline', ''), tags=getattr(node, 'tags', ''),
             show_days_left=getattr(node, 'show_days_left', False),
-            group_id=getattr(node, 'group_id', None), font_family=node.font_family, font_size=node.font_size,
-            font_color=node.font_color
+            group_id=getattr(node, 'group_id', None),
+            font_family=node.font_family, font_size=node.font_size, font_color=node.font_color,
+            header_font_family=node.header_font_family, header_font_size=node.header_font_size,
+            header_font_color=node.header_font_color,
+            tags_font_family=node.tags_font_family, tags_font_size=node.tags_font_size,
+            tags_font_color=node.tags_font_color,
+            date_font_family=node.date_font_family, date_font_size=node.date_font_size,
+            date_font_color=node.date_font_color
         )
         self.nodes[new_node.id] = new_node
         self.mark_unsaved()
@@ -1318,7 +1574,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.model.workflow_data["canvas_bg"] = self.canvas.cget("bg")
         self.manager.save_to_file()
         self.has_unsaved_changes = False
-        self.save_btn.configure(fg_color="green", hover_color="darkgreen", text="💾 Zapisz")
+        self.save_btn.configure(fg_color="green", hover_color="darkgreen", text=tr("btn_save"))
 
     def _render_current_state(self):
         saved_nodes = self.model.workflow_data.get("nodes", [])
@@ -1326,13 +1582,19 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
             node = CanvasNode(
                 self, x=nd["x"], y=nd["y"], text=nd["text"],
                 node_type=nd.get("type", "block"), node_id=nd["id"],
-                color=nd.get("color"), border_color=nd.get("border_color"), width=nd.get("width", 160),
-                height=nd.get("height", 80),
+                color=nd.get("color"), border_color=nd.get("border_color"), border_width=nd.get("border_width", 2),
+                width=nd.get("width", 160), height=nd.get("height", 80),
                 shape=nd.get("shape", "rect"), header=nd.get("header", ""),
                 priority=nd.get("priority", "medium"), deadline=nd.get("deadline", ""), tags=nd.get("tags", ""),
                 show_days_left=nd.get("show_days_left", False), group_id=nd.get("group_id"),
                 font_family=nd.get("font_family", "Helvetica"), font_size=nd.get("font_size", 12),
-                font_color=nd.get("font_color")
+                font_color=nd.get("font_color"),
+                header_font_family=nd.get("header_font_family", "Helvetica"),
+                header_font_size=nd.get("header_font_size", 10), header_font_color=nd.get("header_font_color"),
+                tags_font_family=nd.get("tags_font_family", "Helvetica"), tags_font_size=nd.get("tags_font_size", 10),
+                tags_font_color=nd.get("tags_font_color"),
+                date_font_family=nd.get("date_font_family", "Helvetica"), date_font_size=nd.get("date_font_size", 10),
+                date_font_color=nd.get("date_font_color")
             )
             self.nodes[node.id] = node
 

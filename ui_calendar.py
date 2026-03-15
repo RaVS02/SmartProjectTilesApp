@@ -3,26 +3,25 @@ import tkinter as tk
 import calendar
 from datetime import datetime
 import settings as st
+from translations import tr
 
 
 class MiniTile(ctk.CTkFrame):
-    """Mała wersja kafelka wyświetlana w kalendarzu i poczekalni (z obsługą stylów i rozmiarów)"""
-
     def __init__(self, master, tile_model, drag_start_cb, drag_motion_cb, drag_release_cb, edit_cb, is_compact=True,
-                 color_style="Kolorowe Tło", **kwargs):
+                 color_style="color_bg", **kwargs):
         self.tile_model = tile_model
-
-        # --- Logika Kolorów ---
         total_weight = self.tile_model.total_weight
+
         if self.tile_model.is_completed:
             bg_col, border_col = st.COMPLETED_TILE_COLOR, "gray"
         else:
             base_bg = self.tile_model.color if self.tile_model.color else st.DEFAULT_TILE_COLOR
             base_border = st.SUMMATIVE_COLORS.get(total_weight, st.DEFAULT_TILE_COLOR)
 
-            if color_style == "Kolorowe Tło":
+            # NAPRAWIONO: Literówka w nazwie zmiennej (border_col) i obsługa kluczy tłumaczeń
+            if color_style in ["color_bg", "Kolorowe Tło"]:
                 bg_col, border_col = base_bg, base_border
-            elif color_style == "Tylko Ramki":
+            elif color_style in ["color_border", "Tylko Ramki"]:
                 bg_col, border_col = st.DEFAULT_TILE_COLOR, base_border
             else:
                 bg_col, border_col = st.DEFAULT_TILE_COLOR, "gray"
@@ -33,9 +32,7 @@ class MiniTile(ctk.CTkFrame):
             self.configure(height=30)
             self.pack_propagate(False)
 
-        self.drag_start_cb = drag_start_cb
-        self.drag_motion_cb = drag_motion_cb
-        self.drag_release_cb = drag_release_cb
+        self.drag_start_cb, self.drag_motion_cb, self.drag_release_cb = drag_start_cb, drag_motion_cb, drag_release_cb
         self.edit_cb = edit_cb
 
         title_text = tile_model.title
@@ -52,13 +49,11 @@ class MiniTile(ctk.CTkFrame):
             dot_color = st.PRIORITY_COLORS.get(self.tile_model.priority, "gray")
             ctk.CTkFrame(header_frame, width=8, height=8, corner_radius=4, fg_color=dot_color).pack(side="right",
                                                                                                     padx=(5, 0), pady=4)
-
             if self.tile_model.tags:
                 tags_str = " ".join([f"#{t}" for t in self.tile_model.tags])
                 ctk.CTkLabel(self, text=tags_str, font=("Helvetica", 9, "italic"), text_color="gray", anchor="w").pack(
                     fill="x", padx=5, pady=(0, 4))
 
-        # ZMIANA: Zmodyfikowany system podpinania akcji (Ochrona przed wyścigami)
         bind_widgets = [self, header_frame, self.lbl]
         for widget in bind_widgets:
             widget.bind("<ButtonPress-1>", self.on_press)
@@ -66,11 +61,9 @@ class MiniTile(ctk.CTkFrame):
             widget.bind("<ButtonRelease-1>", self.on_release)
             widget.bind("<Double-Button-1>", self.on_double_click)
 
-    # ZMIANA: Czysta funkcja do edycji
     def on_double_click(self, event):
         self.edit_cb(self.tile_model)
 
-    # ZMIANA: Przesunięcie "Ducha" na zdarzenie B1-Motion (chroni to Dwuklik)
     def on_press(self, event):
         self._drag_start_x = event.x_root
         self._drag_start_y = event.y_root
@@ -78,18 +71,15 @@ class MiniTile(ctk.CTkFrame):
 
     def on_motion(self, event):
         if not getattr(self, "_is_dragging", False):
-            # Włączamy przeciąganie dopiero, jak myszka drgnie o 5px!
-            if abs(event.x_root - getattr(self, "_drag_start_x", event.x_root)) > 5 or \
-                    abs(event.y_root - getattr(self, "_drag_start_y", event.y_root)) > 5:
+            if abs(event.x_root - getattr(self, "_drag_start_x", event.x_root)) > 5 or abs(
+                    event.y_root - getattr(self, "_drag_start_y", event.y_root)) > 5:
                 self._is_dragging = True
                 self.drag_start_cb(self, event)
-
         if getattr(self, "_is_dragging", False):
             self.drag_motion_cb(self, event)
 
     def on_release(self, event):
-        if getattr(self, "_is_dragging", False):
-            self.drag_release_cb(self, event)
+        if getattr(self, "_is_dragging", False): self.drag_release_cb(self, event)
         self._is_dragging = False
 
 
@@ -103,16 +93,12 @@ class CalendarView(ctk.CTkFrame):
         today = datetime.now()
         self.current_year = today.year
         self.current_month = today.month
-        self.miesiące_pl = ["", "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień",
-                            "Wrzesień", "Październik", "Listopad", "Grudzień"]
 
         self.drop_zones = {}
-        self._pending_drop_zones = {}  # ZMIANA: Bufor na strefy zrzutu
+        self._pending_drop_zones = {}
         self._drop_zone_timer = None
-
         self.drag_ghost = None
         self.dragged_tile_model = None
-
         self.build_ui()
 
     def build_ui(self):
@@ -123,8 +109,8 @@ class CalendarView(ctk.CTkFrame):
         self.backlog_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         self.backlog_frame.grid_propagate(False)
 
-        ctk.CTkLabel(self.backlog_frame, text="📥 Poczekalnia", font=st.FONT_TITLE).pack(pady=15)
-        ctk.CTkLabel(self.backlog_frame, text="Przeciągnij zadania na siatkę", font=("Helvetica", 10, "italic"),
+        ctk.CTkLabel(self.backlog_frame, text=tr("cal_backlog"), font=st.FONT_TITLE).pack(pady=15)
+        ctk.CTkLabel(self.backlog_frame, text=tr("cal_backlog_desc"), font=("Helvetica", 10, "italic"),
                      text_color="gray").pack(pady=(0, 10))
 
         self.backlog_scroll = ctk.CTkScrollableFrame(self.backlog_frame, fg_color="transparent")
@@ -138,22 +124,20 @@ class CalendarView(ctk.CTkFrame):
         nav_frame = ctk.CTkFrame(self.cal_container, height=50, corner_radius=10)
         nav_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        ctk.CTkButton(nav_frame, text="< Poprzedni", width=100, command=self.prev_month).pack(side="left", padx=10,
-                                                                                              pady=10)
-        self.month_year_lbl = ctk.CTkLabel(nav_frame, text="Miesiąc Rok", font=st.FONT_TITLE)
+        ctk.CTkButton(nav_frame, text=tr("cal_prev"), width=100, command=self.prev_month).pack(side="left", padx=10,
+                                                                                               pady=10)
+        self.month_year_lbl = ctk.CTkLabel(nav_frame, text="", font=st.FONT_TITLE)
         self.month_year_lbl.pack(side="left", expand=True)
-        ctk.CTkButton(nav_frame, text="Dzisiaj", width=80, fg_color="#1f538d", command=self.go_today).pack(side="right",
-                                                                                                           padx=(0, 10),
-                                                                                                           pady=10)
-        ctk.CTkButton(nav_frame, text="Następny >", width=100, command=self.next_month).pack(side="right", padx=10,
-                                                                                             pady=10)
+        ctk.CTkButton(nav_frame, text=tr("cal_today"), width=80, fg_color="#1f538d", command=self.go_today).pack(
+            side="right", padx=(0, 10), pady=10)
+        ctk.CTkButton(nav_frame, text=tr("cal_next"), width=100, command=self.next_month).pack(side="right", padx=10,
+                                                                                               pady=10)
 
         self.grid_frame = ctk.CTkFrame(self.cal_container, corner_radius=10)
         self.grid_frame.grid(row=1, column=0, sticky="nsew")
         for i in range(7): self.grid_frame.grid_columnconfigure(i, weight=1, uniform="col")
 
-        dni_tygodnia = ["Pon", "Wto", "Śro", "Czw", "Pią", "Sob", "Nie"]
-        for i, dzien in enumerate(dni_tygodnia):
+        for i, dzien in enumerate(tr("cal_weekdays")):
             ctk.CTkLabel(self.grid_frame, text=dzien, font=("Helvetica", 12, "bold"), text_color="gray").grid(row=0,
                                                                                                               column=i,
                                                                                                               pady=5)
@@ -186,34 +170,30 @@ class CalendarView(ctk.CTkFrame):
         for widget in self.backlog_scroll.winfo_children(): widget.destroy()
 
         self.drop_zones.clear()
-        self._pending_drop_zones.clear()  # Czyścimy bufor
+        self._pending_drop_zones.clear()
 
-        self.month_year_lbl.configure(text=f"{self.miesiące_pl[self.current_month]} {self.current_year}")
+        mies_str = tr("cal_months")[self.current_month]
+        self.month_year_lbl.configure(text=f"{mies_str} {self.current_year}")
 
         unscheduled_tiles = []
         scheduled_tiles = {}
         for t in self.manager.tiles:
-            if getattr(t, "is_archived", False):  # <--- DODANA LINIJKA (Zignoruj kosz)
-                continue
-
+            if getattr(t, "is_archived", False): continue
             if not t.deadline:
                 unscheduled_tiles.append(t)
             else:
                 if t.deadline not in scheduled_tiles: scheduled_tiles[t.deadline] = []
                 scheduled_tiles[t.deadline].append(t)
 
-        is_compact = (self.manager.preferences.get("mode", "Pełny") == "Skrócony")
-        color_style = self.manager.preferences.get("color_style", "Kolorowe Tło")
+        is_compact = (self.manager.preferences.get("mode", "size_full") == "size_compact")
+        color_style = self.manager.preferences.get("color_style", "color_bg")
 
-        # 1. Rysowanie Poczekalni
         for t in unscheduled_tiles:
             mt = MiniTile(self.backlog_scroll, t, self.on_drag_start, self.on_drag_motion, self.on_drag_release,
                           self.edit_callback, is_compact=is_compact, color_style=color_style)
             mt.pack(fill="x", pady=2)
 
         self._pending_drop_zones["UNSCHEDULED"] = self.backlog_frame
-
-        # 2. Rysowanie Kalendarza
         cal = calendar.monthcalendar(self.current_year, self.current_month)
         today_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -241,21 +221,16 @@ class CalendarView(ctk.CTkFrame):
                                           self.edit_callback, is_compact=is_compact, color_style=color_style)
                             mt.pack(fill="x", pady=2)
 
-                    # Wrzucamy do bufora
                     self._pending_drop_zones[date_str] = cell_frame
                 else:
                     cell_frame.configure(fg_color=("gray90", "gray10"))
 
-        # ZMIANA: Jedno masowe obliczenie Drop Zones na sam koniec! (Eliminuje migotanie)
-        if self._drop_zone_timer:
-            self.after_cancel(self._drop_zone_timer)
+        if self._drop_zone_timer: self.after_cancel(self._drop_zone_timer)
         self._drop_zone_timer = self.after(100, self._calculate_all_drop_zones)
 
     def _calculate_all_drop_zones(self):
-        """Wywoływane tylko raz na odświeżenie - zapobiega wyścigom i zacięciom"""
         self.update_idletasks()
         self.drop_zones.clear()
-
         for name, widget in self._pending_drop_zones.items():
             if widget.winfo_exists():
                 x1 = widget.winfo_rootx()
@@ -264,10 +239,8 @@ class CalendarView(ctk.CTkFrame):
                 y2 = y1 + widget.winfo_height()
                 self.drop_zones[name] = (x1, y1, x2, y2)
 
-    # --- LOGIKA DRAG & DROP ---
     def on_drag_start(self, minitile, event):
         self.dragged_tile_model = minitile.tile_model
-
         self.drag_ghost = tk.Toplevel(self)
         self.drag_ghost.overrideredirect(True)
         self.drag_ghost.attributes('-alpha', 0.8)
@@ -281,12 +254,10 @@ class CalendarView(ctk.CTkFrame):
         ghost_frame.pack(fill="both", expand=True)
         tk.Label(ghost_frame, text=self.dragged_tile_model.title, fg="white", bg=bg_col, font=("Helvetica", 10)).pack(
             padx=10, pady=5)
-
         self.drag_ghost.geometry(f"150x30+{event.x_root + 10}+{event.y_root + 10}")
 
     def on_drag_motion(self, minitile, event):
-        if self.drag_ghost:
-            self.drag_ghost.geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
+        if self.drag_ghost: self.drag_ghost.geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
 
     def on_drag_release(self, minitile, event):
         if self.drag_ghost:
@@ -306,9 +277,7 @@ class CalendarView(ctk.CTkFrame):
                 self.dragged_tile_model.deadline = None
             else:
                 self.dragged_tile_model.deadline = target_zone
-
             self.manager.save_to_file()
             self.on_update_callback()
             self.refresh_data()
-
         self.dragged_tile_model = None

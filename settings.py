@@ -38,17 +38,17 @@ PRIORITY_COLORS = {
 # 3. LOGIKA CZASU I WAG SUMARYCZNYCH
 # ==========================================
 TIME_COLORS = {
-    "overdue": ("#8b0000", "#ff4a4a"), # Czerwony (po terminie)
-    "today":   ("#cc0000", "#ff3333"), # Jasnoczerwony (na dziś)
-    "1_3":     ("#e65c00", "#ff7b00"), # Ciemnopomarańczowy (1-3 dni)
-    "4_7":     ("#b38f00", "#ffcc00"), # Pomarańczowo-żółty (4-7 dni)
-    "8_14":    ("#739900", "#99cc00"), # Żółto-zielony (8-14 dni)
-    "15_plus": ("#2e8b57", "#3cb371"), # Zielony (+15 dni)
-    "none":    ("#808080", "#a9a9a9")  # Szary (brak terminu)
+    "overdue": ("#8b0000", "#ff4a4a"),
+    "today":   ("#cc0000", "#ff3333"),
+    "1_3":     ("#e65c00", "#ff7b00"),
+    "4_7":     ("#b38f00", "#ffcc00"),
+    "8_14":    ("#739900", "#99cc00"),
+    "15_plus": ("#2e8b57", "#3cb371"),
+    "none":    ("#808080", "#a9a9a9")
 }
 
 SUMMATIVE_COLORS = {
-    2: ("#ff0000", "#cc0000"), # Krytyczne
+    2: ("#ff0000", "#cc0000"),
     3: ("#ff3300", "#cc2900"),
     4: ("#ff6600", "#cc5200"),
     5: ("#ff9900", "#cc7a00"),
@@ -57,7 +57,7 @@ SUMMATIVE_COLORS = {
     8: ("#99ff00", "#7acc00"),
     9: ("#66ff00", "#52cc00"),
     10: ("#33ff00", "#29cc00"),
-    11: ("#00ff00", "#00cc00") # Zupełnie na luzie
+    11: ("#00ff00", "#00cc00")
 }
 
 # ==========================================
@@ -73,7 +73,12 @@ CUSTOM_TILE_COLORS = {
     "Różowy (Delikatny)": ("#fae6e6", "#3a1a1a"),
     "Lawendowy (Delikatny)": ("#f0e6fa", "#2a1a3a"),
     "Słoneczny (Delikatny)": ("#fafae6", "#3a3a1a"),
-    "Brzoskwiniowy (Delikatny)": ("#faefe6", "#3a2a1a")
+    "Brzoskwiniowy (Delikatny)": ("#faefe6", "#3a2a1a"),
+    "Morski (Wyrazisty)": ("#b3e0ff", "#004d80"),
+    "Szmaragdowy (Wyrazisty)": ("#b3ffcc", "#006622"),
+    "Koralowy (Wyrazisty)": ("#ffb3b3", "#800000"),
+    "Fiołkowy (Wyrazisty)": ("#d9b3ff", "#4d0080"),
+    "Złoty (Wyrazisty)": ("#ffe6b3", "#806600")
 }
 
 # ==========================================
@@ -102,13 +107,15 @@ NODE_TYPES = {
 }
 
 NODE_SHAPES = {
-    "Prostokąt zaokrąglony": "rect",
+    "Prostokąt zaokrąglony (Proces)": "rect",
+    "Kapsuła (Start/Koniec)": "capsule",
     "Romb (Decyzja)": "diamond",
-    "Elipsa": "oval",
-    "Równoległobok": "parallelogram"
+    "Elipsa (Zdarzenie)": "oval",
+    "Równoległobok (Wejście/Wyjście)": "parallelogram",
+    "Sześciokąt (Przygotowanie)": "hexagon",
+    "Trapez (Ręczne wprowadzanie)": "trapezoid"
 }
 
-# Kolory Tła dla węzłów (z uwzględnieniem dodatkowych dla Notatek)
 NODE_BG_COLORS = {
     "Domyślny": None,
     "Ciemnoszary": "#2b2b2b",
@@ -116,10 +123,8 @@ NODE_BG_COLORS = {
     "Kremowy (Notatka)": "#e6c280",
     "Brązowy (Notatka)": "#b35900"
 }
-# Doklejenie palety z kafelków do dostępnych teł na płótnie
 for k, v in CUSTOM_TILE_COLORS.items():
     if k != "Domyślny" and v:
-        # Bierzemy ciemny wariant (indeks 1), gdyż płótno operuje głównie na jednym HEXie
         NODE_BG_COLORS[k] = v[1] if isinstance(v, tuple) else v
 
 NODE_BORDER_COLORS = {
@@ -132,21 +137,29 @@ NODE_BORDER_COLORS = {
     "Biały": "#ffffff",
     "Czarny": "#000000"
 }
+# ZMIANA: Dodano bogatą paletę kolorów również do ramek
+for k, v in CUSTOM_TILE_COLORS.items():
+    if k != "Domyślny" and v:
+        NODE_BORDER_COLORS[k] = v[1] if isinstance(v, tuple) else v
 
-# Typografia węzłów
 CANVAS_FONT_FAMILIES = ["Helvetica", "Arial", "Times New Roman", "Courier New", "Verdana", "Impact"]
 CANVAS_FONT_SIZES = ["8", "10", "12", "14", "16", "20", "24", "32", "48"]
+
 CANVAS_FONT_COLORS = {
     "Domyślny": None,
     "Czarny": "#000000",
     "Biały": "#ffffff",
+    "Jasnoszary": "#cccccc",
     "Czerwony": "#ff4a4a",
-    "Niebieski": "#4da6ff",
+    "Pomarańczowy": "#ff9900",
+    "Żółty": "#ffcc00",
     "Zielony": "#00cc00",
-    "Żółty": "#ffcc00"
+    "Morski": "#00ffcc",
+    "Niebieski": "#4da6ff",
+    "Fioletowy": "#cc66ff",
+    "Różowy": "#ff99cc"
 }
 
-# Ustawienia krawędzi (Linii)
 EDGE_DIRECTIONS = {
     "A ➔ B (Domyślny)": "last",
     "A ⬅ B (Odwrotny)": "first",
@@ -158,7 +171,31 @@ EDGE_COLORS = {
     "Szary (Domyślny)": "#888888",
     "Czerwony (Błąd/Nie)": "#ff4a4a",
     "Zielony (Sukces/Tak)": "#00cc00",
-    "Niebieski (Informacja)": "#2980b9"
+    "Niebieski (Informacja)": "#2980b9",
+    "Pomarańczowy": "#ff9900",
+    "Fioletowy": "#cc66ff",
+    "Morski": "#00ffcc"
 }
 
 EDGE_WIDTHS = ["1", "2", "3", "4", "5"]
+
+# ==========================================
+# 7. KOLORY ELEMENTÓW UI
+# ==========================================
+PROGRESS_BAR_COLORS = {
+    0: "#cc0000",
+    25: "#cc6600",
+    50: "#e6b800",
+    75: "#99cc00",
+    100: "#00cc00"
+}
+ARCHIVED_TILE_BG = ("#2b2b2b", "#1a1a1a")
+ARCHIVED_TILE_BORDER = "#444444"
+PIN_ACTIVE = ("#c29200", "#ffcc00")
+PIN_INACTIVE = ("#999999", "#666666")
+PIN_HOVER = ("#e0e0e0", "#3a3a3a")
+
+BTN_WORKFLOW = {"fg": "#1f538d", "hover": "#14375e"}
+BTN_RESTORE = {"fg": "#d48806", "hover": "#b07004"}
+BTN_DONE = {"fg": "green", "hover": "darkgreen"}
+BTN_DELETE = {"fg": "#8b0000", "hover": "#5c0000"}
