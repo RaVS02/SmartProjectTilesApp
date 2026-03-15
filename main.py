@@ -1,6 +1,8 @@
 import customtkinter as ctk
 import settings as st
 import math
+import sys
+import os
 import tkinter.messagebox as messagebox
 from models import TileManager
 from ui import ProjectTileWidget
@@ -14,6 +16,10 @@ from translations import set_lang, tr, LANGUAGES
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("green")
 
+def resource_path(relative_path):
+    """ Pobiera ścieżkę do zasobów, obsługuje środowisko deweloperskie i PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
+    return os.path.join(base_path, relative_path)
 
 class SmartProjectTilesApp(ctk.CTk):
     def __init__(self):
@@ -21,7 +27,7 @@ class SmartProjectTilesApp(ctk.CTk):
         self.title(st.WINDOW_TITLE)
         self.geometry(f"{st.WINDOW_WIDTH}x{st.WINDOW_HEIGHT}")
         try:
-            self.iconbitmap("appico.ico")
+            self.iconbitmap(resource_path("appico.ico"))
         except Exception:
             pass  # Jeśli program nie znajdzie pliku, po prostu to zignoruje i nie wywali błędu
         self.grid_rowconfigure(0, weight=0)

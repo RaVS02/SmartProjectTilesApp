@@ -653,7 +653,7 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         header = ctk.CTkFrame(self, height=50, fg_color="transparent")
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(20, 10))
-        ctk.CTkButton(header, text=tr("back_to_list"), width=100, command=self.close_callback).pack(side="left",
+        ctk.CTkButton(header, text=tr("back_to_list"), width=100, command=self.exit_workflow).pack(side="left",
                                                                                                     padx=(0, 20))
         ctk.CTkLabel(header, text=f"📍 Workflow: {self.model.title}", font=st.FONT_TITLE).pack(side="left")
 
@@ -812,6 +812,11 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         elif event.num == 5 or getattr(event, "delta", 0) < 0:
             self.minimap_zoom_out()
 
+    def exit_workflow(self):
+        # Jeśli są niezapisane zmiany, wykonujemy zapis przed wyjściem
+        if self.has_unsaved_changes:
+            self.save_workflow()
+        self.close_callback()
     def to_minimap(self, lx, ly):
         return 100 + (lx * self.minimap_scale), 100 + (ly * self.minimap_scale)
 
