@@ -88,7 +88,7 @@ Ten projekt jest udostępniany na licencji **GNU GPLv3**. Oznacza to, że możes
 
 Aplikacja została stworzona po godzinach, z ogromnej pasji do programowania i architektury oprogramowania. Jeśli ten projekt ułatwił Ci zarządzanie zadaniami, pomógł w nauce Pythona lub po prostu Ci się podoba – możesz postawić mi wirtualną kawę! Każde wsparcie to ogromna motywacja do dalszego kodowania. ❤️
 
-[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](buymeacoffee.com/sobalarafaa)
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/sobalarafaa)
 
 ---
 
