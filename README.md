@@ -76,6 +76,26 @@ SmartProjectTiles/
 
 Gotowy program znajdzie się w wygenerowanym folderze `dist/`. Wystarczy przenieść go w dowolne miejsce w systemie. Aplikacja automatycznie utworzy obok siebie plik `data.json` po pierwszym uruchomieniu.
 ```
+---
+
+## ⚖️ Licencja
+
+Ten projekt jest udostępniany na licencji **GNU GPLv3**. Oznacza to, że możesz swobodnie pobierać, modyfikować i używać tego kodu do własnych celów. Jeśli jednak zdecydujesz się udostępnić zmodyfikowaną wersję tego programu, masz prawny obowiązek udostępnić jej kod źródłowy na tej samej, darmowej licencji. Szczegóły znajdziesz w pliku `LICENSE`.
+
+---
+
+## ☕ Wsparcie Projektu
+
+Aplikacja została stworzona po godzinach, z ogromnej pasji do programowania i architektury oprogramowania. Jeśli ten projekt ułatwił Ci zarządzanie zadaniami, pomógł w nauce Pythona lub po prostu Ci się podoba – możesz postawić mi wirtualną kawę! Każde wsparcie to ogromna motywacja do dalszego kodowania. ❤️
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/sobalarafaa)
+
+---
+
+## 📜 Podziękowania (Credits)
+
+Ikona aplikacji została stworzona przez **[Those Icons](https://icon-icons.com)** i pobrana z serwisu **[ICON-ICONS](https://icon-icons.com)**.
+```
 ## 📜 Podziękowania (Credits)
 
 Ikona aplikacji została stworzona przez **[Those Icons](https://thoseicons.com)** i pobrana z serwisu **[ICON-ICONS](https://icon-icons.com)**.`
