@@ -678,7 +678,6 @@ class EdgeEditDialog(ctk.CTkToplevel):
         )
         if hasattr(self.master, "update_minimap"): self.master.update_minimap()
         self.destroy()
-
     def save_data(self):
         data = self.get_current_data()
         self.on_save_callback(self.edge, *data)

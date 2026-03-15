@@ -1095,7 +1095,6 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.draw_group_selection()
         self.mark_unsaved()
         self.push_to_history()
-
     def cancel_drawing(self):
         if getattr(self, "drawing_state", None):
             if self.temp_line:

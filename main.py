@@ -29,7 +29,6 @@ class SmartProjectTilesApp(ctk.CTk):
         self.grid_rowconfigure(2, weight=1)
         self.grid_rowconfigure(3, weight=0)
         self.grid_columnconfigure(0, weight=1)
-
         self.current_page = 1
         self.items_per_page = 15
         self.search_timer = None
