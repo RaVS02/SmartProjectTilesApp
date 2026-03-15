@@ -23,11 +23,11 @@ class ExportDialog(ctk.CTkToplevel):
         self.geometry("300x380")
         self.on_export_callback = on_export_callback
         self.transient(master)
-        self.grab_set()
 
         ctk.CTkLabel(self, text=tr("file_format"), font=("Helvetica", 12, "bold")).pack(pady=(15, 5))
         self.format_var = ctk.StringVar(value="PNG")
-        ctk.CTkOptionMenu(self, values=["PNG", "JPG"], variable=self.format_var).pack(pady=5)
+        # ZMIANA: Dodajemy format EPS!
+        ctk.CTkOptionMenu(self, values=["PNG", "JPG", "EPS (Wektor)"], variable=self.format_var).pack(pady=5)
 
         self.grid_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(self, text=tr("show_grid"), variable=self.grid_var).pack(pady=10)
@@ -48,19 +48,29 @@ class ExportDialog(ctk.CTkToplevel):
                       hover_color="#5c0000").pack(side="left", padx=5)
 
     def on_format_change(self, *args):
-        if self.format_var.get() == "JPG":
+        val = self.format_var.get()
+        if val == "JPG":
             self.trans_var.set(False)
             self.trans_cb.configure(state="disabled")
             self.grid_var.set(True)
+        elif val == "EPS (Wektor)":
+            # EPS naturalnie radzi sobie ze świetną jakością, blokujemy zbędne opcje rastrowe
+            self.trans_var.set(False)
+            self.trans_cb.configure(state="disabled")
+            self.grid_var.set(False)
         else:
             self.trans_cb.configure(state="normal")
             self.trans_var.set(True)
             self.grid_var.set(False)
 
     def do_export(self):
-        self.on_export_callback(self.format_var.get(), self.grid_var.get(), self.minimap_var.get(),
-                                self.trans_var.get())
+        fmt = self.format_var.get()
+        show_grid = self.grid_var.get()
+        show_minimap = self.minimap_var.get()
+        is_transparent = self.trans_var.get()
+
         self.destroy()
+        self.master.after(250, lambda: self.on_export_callback(fmt, show_grid, show_minimap, is_transparent))
 
 
 class NodeEditDialog(ctk.CTkToplevel):
@@ -462,8 +472,8 @@ class NodeEditDialog(ctk.CTkToplevel):
 class EdgeEditDialog(ctk.CTkToplevel):
     def __init__(self, master, edge, on_save_callback, **kwargs):
         super().__init__(master, **kwargs)
-        self.title(tr("edge_props"))
-        self.geometry("300x480")
+        self.title(tr("edge_props") if "edge_props" in getattr(st, "translations", {}) else "Właściwości Linii")
+        self.geometry("380x600")
         self.edge = edge
         self.on_save_callback = on_save_callback
         self.original_data = self.edge.to_dict()
@@ -471,45 +481,151 @@ class EdgeEditDialog(ctk.CTkToplevel):
         self.transient(master)
         self.grab_set()
 
-        ctk.CTkLabel(self, text=tr("label_text")).pack(pady=(15, 5))
+        self.btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.btn_frame.pack(side="bottom", fill="x", pady=10, padx=10)
+        ctk.CTkButton(self.btn_frame,
+                      text=tr("btn_save_simple") if "btn_save_simple" in getattr(st, "translations", {}) else "Zapisz",
+                      command=self.save_data, fg_color="green", hover_color="darkgreen").pack(side="left", expand=True,
+                                                                                              padx=5)
+        ctk.CTkButton(self.btn_frame,
+                      text=tr("btn_cancel") if "btn_cancel" in getattr(st, "translations", {}) else "Anuluj",
+                      command=self.cancel_data, fg_color="#8b0000", hover_color="#5c0000").pack(side="left",
+                                                                                                expand=True, padx=5)
+
+        self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.scroll.pack(side="top", fill="both", expand=True, padx=5, pady=5)
+
+        # --- SEKCJA 1: TEKST ---
+        ctk.CTkLabel(self.scroll, text="Etykieta (Tekst na linii):", font=("Helvetica", 12, "bold")).pack(pady=(5, 2),
+                                                                                                          anchor="w",
+                                                                                                          padx=10)
         self.label_var = ctk.StringVar(value=getattr(edge, "label", ""))
         self.label_var.trace_add("write", self.update_live)
-        ctk.CTkEntry(self, textvariable=self.label_var, width=200).pack(pady=5)
+        ctk.CTkEntry(self.scroll, textvariable=self.label_var, width=300).pack(pady=5, padx=10)
 
-        ctk.CTkLabel(self, text=tr("arrow_type")).pack(pady=(15, 5))
+        # --- SEKCJA 2: TYPOGRAFIA ---
+        self.f_typo = ctk.CTkFrame(self.scroll)
+        self.f_typo.pack(fill="x", pady=10, ipadx=5, ipady=5)
+        ctk.CTkLabel(self.f_typo, text="Typografia", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
+                                                                                          pady=(5, 0))
+
+        r1 = ctk.CTkFrame(self.f_typo, fg_color="transparent")
+        r1.pack(fill="x", pady=2, padx=10)
+        ctk.CTkLabel(r1, text="Czcionka:").pack(side="left")
+        self.font_fam_var = ctk.StringVar(value=getattr(edge, "font_family", "Helvetica"))
+        ctk.CTkOptionMenu(r1, values=st.CANVAS_FONT_FAMILIES, variable=self.font_fam_var, width=130,
+                          command=self.update_live).pack(side="right")
+
+        r2 = ctk.CTkFrame(self.f_typo, fg_color="transparent")
+        r2.pack(fill="x", pady=2, padx=10)
+        ctk.CTkLabel(r2, text="Rozmiar:").pack(side="left")
+        self.font_siz_var = ctk.StringVar(value=str(getattr(edge, "font_size", 11)))
+        ctk.CTkOptionMenu(r2, values=st.CANVAS_FONT_SIZES, variable=self.font_siz_var, width=130,
+                          command=self.update_live).pack(side="right")
+
+        r3 = ctk.CTkFrame(self.f_typo, fg_color="transparent")
+        r3.pack(fill="x", pady=2, padx=10)
+        ctk.CTkLabel(r3, text="Kolor:").pack(side="left")
+
+        init_font_col = getattr(edge, "font_color", "#ffcc00")
+        font_col_key = get_key(st.CANVAS_FONT_COLORS, init_font_col, list(st.CANVAS_FONT_COLORS.keys())[0])
+        self.font_col_var = ctk.StringVar(value=tr(font_col_key))
+        self.font_col_preview = ctk.CTkFrame(r3, width=20, height=20, corner_radius=3,
+                                             fg_color=st.CANVAS_FONT_COLORS.get(font_col_key) or "#ffcc00")
+        self.font_col_preview.pack(side="right", padx=(5, 0))
+        ctk.CTkOptionMenu(r3, values=[tr(k) for k in st.CANVAS_FONT_COLORS.keys()], variable=self.font_col_var,
+                          width=130, command=self.update_font_col_preview).pack(side="right")
+
+        # --- SEKCJA 3: TŁO ETYKIETY ---
+        self.f_bg = ctk.CTkFrame(self.scroll)
+        self.f_bg.pack(fill="x", pady=5, ipadx=5, ipady=5)
+        ctk.CTkLabel(self.f_bg, text="Tło Etykiety", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
+                                                                                          pady=(5, 0))
+
+        self.trans_label_var = ctk.BooleanVar(value=getattr(self.edge, "transparent_label", False))
+        self.trans_cb = ctk.CTkCheckBox(self.f_bg, text="Przezroczyste (Brak tła)", variable=self.trans_label_var,
+                                        command=self.on_trans_change)
+        self.trans_cb.pack(pady=(5, 10), padx=10, anchor="w")
+
+        self.r4 = ctk.CTkFrame(self.f_bg, fg_color="transparent")
+        self.r4.pack(fill="x", pady=2, padx=10)
+        self.bg_lbl = ctk.CTkLabel(self.r4, text="Kolor Tła:")
+        self.bg_lbl.pack(side="left")
+
+        init_bg_col = getattr(edge, "label_bg_color", None)
+        bg_col_key = get_key(st.NODE_BG_COLORS, init_bg_col,
+                             list(st.NODE_BG_COLORS.keys())[0]) if init_bg_col else "Domyślny (Tło Płótna)"
+
+        self.bg_col_var = ctk.StringVar(value=tr(bg_col_key))
+        self.bg_col_preview = ctk.CTkFrame(self.r4, width=20, height=20, corner_radius=3,
+                                           fg_color=st.NODE_BG_COLORS.get(bg_col_key) or "#1e1e1e")
+        self.bg_col_preview.pack(side="right", padx=(5, 0))
+
+        # Specjalna opcja: "Domyślny (Tło Płótna)" aby automatycznie dobierało kolor tła roboczego
+        opts = ["Domyślny (Tło Płótna)"] + [tr(k) for k in st.NODE_BG_COLORS.keys()]
+        self.bg_col_menu = ctk.CTkOptionMenu(self.r4, values=opts, variable=self.bg_col_var, width=130,
+                                             command=self.update_bg_col_preview)
+        self.bg_col_menu.pack(side="right")
+
+        # --- SEKCJA 4: STYL LINII ---
+        self.f_line = ctk.CTkFrame(self.scroll)
+        self.f_line.pack(fill="x", pady=10, ipadx=5, ipady=5)
+        ctk.CTkLabel(self.f_line, text="Styl Linii", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
+                                                                                          pady=(5, 0))
+
+        l1 = ctk.CTkFrame(self.f_line, fg_color="transparent")
+        l1.pack(fill="x", pady=5, padx=10)
+        ctk.CTkLabel(l1, text="Kierunek strzałki:").pack(side="left")
         current_dir_key = get_key(st.EDGE_DIRECTIONS, edge.direction, list(st.EDGE_DIRECTIONS.keys())[0])
         self.dir_var = ctk.StringVar(value=tr(current_dir_key))
-        ctk.CTkOptionMenu(self, values=[tr(k) for k in st.EDGE_DIRECTIONS.keys()], variable=self.dir_var,
-                          command=self.update_live).pack(pady=5)
+        ctk.CTkOptionMenu(l1, values=[tr(k) for k in st.EDGE_DIRECTIONS.keys()], variable=self.dir_var, width=130,
+                          command=self.update_live).pack(side="right")
 
-        ctk.CTkLabel(self, text=tr("line_color")).pack(pady=(15, 5))
-        color_frame = ctk.CTkFrame(self, fg_color="transparent")
-        color_frame.pack(fill="x", padx=20, pady=5)
-
+        l2 = ctk.CTkFrame(self.f_line, fg_color="transparent")
+        l2.pack(fill="x", pady=5, padx=10)
+        ctk.CTkLabel(l2, text="Kolor linii:").pack(side="left")
         current_ecolor_key = get_key(st.EDGE_COLORS, edge.color, list(st.EDGE_COLORS.keys())[0])
         init_ecolor = st.EDGE_COLORS.get(current_ecolor_key) or "#888888"
-
-        self.edge_color_preview = ctk.CTkFrame(color_frame, width=20, height=20, corner_radius=3, fg_color=init_ecolor)
+        self.edge_color_preview = ctk.CTkFrame(l2, width=20, height=20, corner_radius=3, fg_color=init_ecolor)
         self.edge_color_preview.pack(side="right", padx=(5, 0))
-
         self.color_var = ctk.StringVar(value=tr(current_ecolor_key))
-        ctk.CTkOptionMenu(color_frame, values=[tr(k) for k in st.EDGE_COLORS.keys()], variable=self.color_var,
+        ctk.CTkOptionMenu(l2, values=[tr(k) for k in st.EDGE_COLORS.keys()], variable=self.color_var, width=130,
                           command=self.update_edge_color_preview).pack(side="right")
 
-        ctk.CTkLabel(self, text=tr("line_thickness")).pack(pady=(15, 5))
-        self.width_slider = ctk.CTkSlider(self, from_=1, to=8, number_of_steps=7, command=self.update_live)
+        l3 = ctk.CTkFrame(self.f_line, fg_color="transparent")
+        l3.pack(fill="x", pady=10, padx=10)
+        ctk.CTkLabel(l3, text="Grubość:").pack(side="left")
+        self.width_slider = ctk.CTkSlider(l3, from_=1, to=8, number_of_steps=7, command=self.update_live)
         self.width_slider.set(edge.line_width)
-        self.width_slider.pack(pady=5)
+        self.width_slider.pack(side="right")
 
         self.dashed_var = ctk.BooleanVar(value=edge.dashed)
-        ctk.CTkCheckBox(self, text=tr("dashed_line"), variable=self.dashed_var, command=self.update_live).pack(pady=15)
+        ctk.CTkCheckBox(self.f_line, text="Linia Przerywana", variable=self.dashed_var, command=self.update_live).pack(
+            pady=10, anchor="w", padx=10)
 
-        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-        btn_frame.pack(pady=20)
-        ctk.CTkButton(btn_frame, text=tr("btn_save_simple"), command=self.save_data, width=100, fg_color="green",
-                      hover_color="darkgreen").pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text=tr("btn_cancel"), command=self.cancel_data, width=100, fg_color="#8b0000",
-                      hover_color="#5c0000").pack(side="left", padx=5)
+        self.on_trans_change()
+
+    def on_trans_change(self, *args):
+        if self.trans_label_var.get():
+            self.bg_col_menu.configure(state="disabled")
+            self.bg_lbl.configure(text_color="gray")
+        else:
+            self.bg_col_menu.configure(state="normal")
+            self.bg_lbl.configure(text_color=["#000000", "#FFFFFF"])
+        self.update_live()
+
+    def update_font_col_preview(self, choice):
+        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
+        self.font_col_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
+        self.update_live()
+
+    def update_bg_col_preview(self, choice):
+        if choice == "Domyślny (Tło Płótna)":
+            self.bg_col_preview.configure(fg_color=self.master.canvas.cget("bg"))
+        else:
+            act = rev_tr(choice, list(st.NODE_BG_COLORS.keys()))
+            self.bg_col_preview.configure(fg_color=st.NODE_BG_COLORS.get(act) or "#1e1e1e")
+        self.update_live()
 
     def update_edge_color_preview(self, choice):
         actual_key = rev_tr(choice, list(st.EDGE_COLORS.keys()))
@@ -517,8 +633,7 @@ class EdgeEditDialog(ctk.CTkToplevel):
         self.edge_color_preview.configure(fg_color=color if color else "#888888")
         self.update_live()
 
-    def update_live(self, *args):
-        if not hasattr(self, "width_slider"): return
+    def get_current_data(self):
         act_dir = rev_tr(self.dir_var.get(), list(st.EDGE_DIRECTIONS.keys()))
         act_col = rev_tr(self.color_var.get(), list(st.EDGE_COLORS.keys()))
 
@@ -527,30 +642,47 @@ class EdgeEditDialog(ctk.CTkToplevel):
         new_dashed = self.dashed_var.get()
         new_w = int(self.width_slider.get())
         new_label = self.label_var.get()
-        self.edge.update_properties(new_dir, new_color, new_dashed, new_w, new_label)
+        is_trans_label = self.trans_label_var.get()
+
+        act_font_col = rev_tr(self.font_col_var.get(), list(st.CANVAS_FONT_COLORS.keys()))
+        font_col = st.CANVAS_FONT_COLORS.get(act_font_col)
+
+        if self.bg_col_var.get() == "Domyślny (Tło Płótna)":
+            bg_col = None
+        else:
+            act_bg_col = rev_tr(self.bg_col_var.get(), list(st.NODE_BG_COLORS.keys()))
+            bg_col = st.NODE_BG_COLORS.get(act_bg_col)
+
+        try:
+            f_size = int(self.font_siz_var.get())
+        except ValueError:
+            f_size = 11
+
+        return (new_dir, new_color, new_dashed, new_w, new_label, is_trans_label,
+                bg_col, self.font_fam_var.get(), f_size, font_col)
+
+    def update_live(self, *args):
+        if not hasattr(self, "width_slider"): return
+        data = self.get_current_data()
+        self.edge.update_properties(*data)
         self.master.mark_unsaved()
         if hasattr(self.master, "update_minimap"): self.master.update_minimap()
 
     def cancel_data(self):
+        orig = self.original_data
         self.edge.update_properties(
-            self.original_data["direction"], self.original_data["color"],
-            self.original_data["dashed"], self.original_data.get("line_width", 2),
-            self.original_data.get("label", "")
+            orig["direction"], orig["color"], orig["dashed"], orig.get("line_width", 2),
+            orig.get("label", ""), orig.get("transparent_label", False),
+            orig.get("label_bg_color", None), orig.get("font_family", "Helvetica"),
+            orig.get("font_size", 11), orig.get("font_color", "#ffcc00")
         )
         if hasattr(self.master, "update_minimap"): self.master.update_minimap()
         self.destroy()
 
     def save_data(self):
-        act_dir = rev_tr(self.dir_var.get(), list(st.EDGE_DIRECTIONS.keys()))
-        act_col = rev_tr(self.color_var.get(), list(st.EDGE_COLORS.keys()))
-        new_dir = st.EDGE_DIRECTIONS.get(act_dir)
-        new_color = st.EDGE_COLORS.get(act_col)
-        new_dashed = self.dashed_var.get()
-        new_w = int(self.width_slider.get())
-        new_label = self.label_var.get()
-        self.on_save_callback(self.edge, new_dir, new_color, new_dashed, new_w, new_label)
+        data = self.get_current_data()
+        self.on_save_callback(self.edge, *data)
         self.destroy()
-
 
 class TileFormDialog(ctk.CTkToplevel):
     def __init__(self, master, on_save_callback, existing_tile=None, **kwargs):

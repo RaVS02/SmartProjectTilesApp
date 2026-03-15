@@ -126,12 +126,12 @@
                         "type": "project",
                         "shape": "rect",
                         "color": "#4d0080",
-                        "border_color": "#cc66ff",
+                        "border_color": "#666666",
                         "border_width": 2,
                         "width": 220,
                         "height": 100,
                         "priority": "medium",
-                        "deadline": "",
+                        "deadline": "2028-06-14",
                         "tags": "",
                         "show_days_left": false,
                         "group_id": null,
@@ -314,7 +314,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "6a2c817a-f6b8-4fdb-b9e6-aa71e0adf610",
@@ -325,7 +330,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "a8bf2e4e-8883-40e2-90b8-95da58f0d39a",
@@ -336,7 +346,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "e1f13f45-bc3a-4164-99c4-759a7dc1c003",
@@ -347,7 +362,12 @@
                         "dashed": true,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "b3eafa2f-11c2-4e90-9091-3b894e4be449",
@@ -358,7 +378,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": "Przebudowa"
+                        "label": "Przebudowa",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "a3d472a9-fb10-4ed6-8767-bdd364940604",
@@ -369,7 +394,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "e0d2320e-f740-43c0-8246-f06d169aeb6f",
@@ -380,7 +410,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "8783e3c8-3638-479f-b9f4-034785aaabc7",
@@ -391,20 +426,26 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 3,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     }
-                ]
+                ],
+                "canvas_bg": "#1a1a1a"
             },
             "tags": [
                 "historia",
                 "architektura",
-                "sukcesffff"
+                "sukcesffff bn"
             ],
             "priority": "high",
-            "deadline": "2025-06-17",
+            "deadline": "2026-11-04",
             "color": null,
             "content": {
-                "text": "Interaktywna oś czasu powstawania naszej aplikacji. Kliknij 'Workflow', aby zobaczyć pełną drogę od prostego skryptu do Enterprise App!",
+                "text": "Interaktywna oś czasu powstawania naszej aplikacji. Kliknij 'Workflow', aby zobaczyć pełną drogę od prostego skryptu do Enterprise App!lllbnbn",
                 "todos": [
                     {
                         "task": "Zbudować interfejs UI",
@@ -415,7 +456,7 @@
                         "is_done": false
                     },
                     {
-                        "task": "Wdrożyć system Drag & Drop",
+                        "task": "Wdrożyć system Drag & Drobnbnp",
                         "is_done": false
                     },
                     {

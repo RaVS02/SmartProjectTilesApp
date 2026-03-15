@@ -468,34 +468,29 @@ class CanvasNode:
 
 class CanvasEdge:
     def __init__(self, wf, source_node, target_node, edge_id=None, direction="last", color="#888888", dashed=False,
-                 waypoints=None, line_width=2, label=""):
-        self.wf = wf;
-        self.canvas = wf.canvas
+                 waypoints=None, line_width=2, label="", transparent_label=False,
+                 label_bg_color=None, font_family="Helvetica", font_size=11, font_color="#ffcc00"):
+        self.wf = wf; self.canvas = wf.canvas
         self.id = edge_id if edge_id else str(uuid.uuid4())
-        self.source = source_node;
-        self.target = target_node
-        self.direction = direction;
-        self.color = color;
-        self.dashed = dashed;
-        self.line_width = line_width
+        self.source = source_node; self.target = target_node
+        self.direction = direction; self.color = color; self.dashed = dashed; self.line_width = line_width
         self.label = label
-        self.waypoints = waypoints if waypoints else [];
-        self.selected = False
+        self.transparent_label = transparent_label
+        self.label_bg_color = label_bg_color
+        self.font_family = font_family
+        self.font_size = int(float(font_size))
+        self.font_color = font_color
+        self.waypoints = waypoints if waypoints else []; self.selected = False
         self.arrow_map = {"last": tk.LAST, "first": tk.FIRST, "both": tk.BOTH, "none": tk.NONE}
-        self.line_id = None;
-        self.handle_ids = [];
-        self.label_id = None;
-        self.label_bg_id = None
+        self.line_id = None; self.handle_ids = []; self.label_id = None; self.label_bg_id = None
         self.draw()
 
     def get_closest_segment_index(self, px, py):
         if not self.waypoints: return 0
         pts = [[self.source.x, self.source.y]] + self.waypoints + [[self.target.x, self.target.y]]
-        min_dist = float('inf');
-        best_idx = 0
+        min_dist = float('inf'); best_idx = 0
         for i in range(len(pts) - 1):
-            x1, y1 = pts[i];
-            x2, y2 = pts[i + 1]
+            x1, y1 = pts[i]; x2, y2 = pts[i + 1]
             l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2
             if l2 == 0:
                 dist = math.hypot(px - x1, py - y1)
@@ -521,23 +516,19 @@ class CanvasEdge:
                                                tags=("edge", self.id))
 
         if self.label:
-            self.label_bg_id = self.canvas.create_rectangle(0, 0, 0, 0, fill="#1a1a1a", outline="",
-                                                            tags=("edge_label", self.id))
-            self.label_id = self.canvas.create_text(0, 0, text=self.label, fill="#ffcc00",
-                                                    font=("Helvetica", max(7, int(11 * z)), "bold"),
-                                                    tags=("edge_label", self.id))
+            self.label_bg_id = self.canvas.create_rectangle(0, 0, 0, 0, fill="", outline="", tags=("edge_label", self.id))
+            font_style = (self.font_family, max(4, int(self.font_size * z)), "bold")
+            self.label_id = self.canvas.create_text(0, 0, text=self.label, fill=self.font_color, font=font_style, tags=("edge_label", self.id))
 
         self.canvas.tag_lower(self.line_id)
         for i in range(len(self.waypoints)):
-            hid = self.canvas.create_oval(0, 0, 0, 0, fill="yellow", outline="#333", width=2,
-                                          tags=("waypoint", self.id, str(i)))
+            hid = self.canvas.create_oval(0, 0, 0, 0, fill="yellow", outline="#333", width=2, tags=("waypoint", self.id, str(i)))
             self.handle_ids.append(hid)
         self.update_position()
 
     def update_position(self):
         z = self.wf.zoom
-        coords = []
-        mid_px, mid_py = 0, 0
+        coords = []; mid_px, mid_py = 0, 0
 
         if not self.waypoints:
             x1, y1 = self.source.get_port_point(self.target.x, self.target.y)
@@ -567,7 +558,12 @@ class CanvasEdge:
             self.canvas.coords(self.label_id, mid_px, mid_py)
             bbox = self.canvas.bbox(self.label_id)
             if bbox:
-                bg_col = self.wf.canvas.cget("bg")
+                if getattr(self, "transparent_label", False):
+                    bg_col = ""
+                else:
+                    bg_col = getattr(self, "label_bg_color", None)
+                    if not bg_col:
+                        bg_col = self.wf.canvas.cget("bg")
                 self.canvas.itemconfig(self.label_bg_id, fill=bg_col)
                 self.canvas.coords(self.label_bg_id, bbox[0] - 3, bbox[1] - 2, bbox[2] + 3, bbox[3] + 2)
                 self.canvas.tag_raise(self.label_bg_id)
@@ -578,28 +574,32 @@ class CanvasEdge:
         self.canvas.itemconfig(self.line_id, fill=fill_c)
 
         for i, wp in enumerate(self.waypoints):
-            hx, hy = wp[0] * z, wp[1] * z;
-            r = max(3, int(5 * z))
+            hx, hy = wp[0] * z, wp[1] * z; r = max(3, int(5 * z))
             self.canvas.coords(self.handle_ids[i], hx - r, hy - r, hx + r, hy + r)
             self.canvas.itemconfig(self.handle_ids[i], state=st_state)
             self.canvas.tag_raise(self.handle_ids[i])
 
     def set_selected(self, state):
-        self.selected = state;
-        self.update_position()
+        self.selected = state; self.update_position()
 
-    def update_properties(self, direction, color, dashed, line_width, label=""):
-        self.direction = direction;
-        self.color = color;
-        self.dashed = dashed;
+    def update_properties(self, direction, color, dashed, line_width, label="", transparent_label=False,
+                          label_bg_color=None, font_family="Helvetica", font_size=11, font_color="#ffcc00"):
+        self.direction = direction
+        self.color = color
+        self.dashed = dashed
         self.line_width = line_width
-        self.label = label;
+        self.label = label
+        self.transparent_label = transparent_label
+        self.label_bg_color = label_bg_color
+        self.font_family = font_family
+        self.font_size = int(float(font_size))
+        self.font_color = font_color
         self.draw()
 
     def destroy(self):
         self.canvas.delete(self.line_id)
-        if self.label_id: self.canvas.delete(self.label_id)
-        if self.label_bg_id: self.canvas.delete(self.label_bg_id)
+        if getattr(self, "label_id", None): self.canvas.delete(self.label_id)
+        if getattr(self, "label_bg_id", None): self.canvas.delete(self.label_bg_id)
         for hid in self.handle_ids: self.canvas.delete(hid)
 
     def to_dict(self):
@@ -607,7 +607,12 @@ class CanvasEdge:
             "id": self.id, "source": self.source.id, "target": self.target.id,
             "direction": self.direction, "color": self.color, "dashed": self.dashed,
             "waypoints": self.waypoints, "line_width": getattr(self, "line_width", 2),
-            "label": getattr(self, "label", "")
+            "label": getattr(self, "label", ""),
+            "transparent_label": getattr(self, "transparent_label", False),
+            "label_bg_color": getattr(self, "label_bg_color", None),
+            "font_family": getattr(self, "font_family", "Helvetica"),
+            "font_size": getattr(self, "font_size", 11),
+            "font_color": getattr(self, "font_color", "#ffcc00")
         }
 
 
@@ -907,12 +912,14 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
 
         self.update_idletasks()
 
-        x0 = self.canvas.winfo_rootx()
-        y0 = self.canvas.winfo_rooty()
-        w = self.canvas.winfo_width()
-        h = self.canvas.winfo_height()
+        # --- FIX 1: Margines bezpieczeństwa ucina brzydkie krawędzie interfejsu ---
+        x0 = self.canvas.winfo_rootx() + 2
+        y0 = self.canvas.winfo_rooty() + 2
+        w = self.canvas.winfo_width() - 4
+        h = self.canvas.winfo_height() - 4
 
         try:
+            # Aparat robi mniejsze zdjęcie, dzięki czemu omija boczne panele!
             img = ImageGrab.grab(bbox=(x0, y0, x0 + w, y0 + h))
 
             if transparent and format_val == "PNG":
@@ -920,7 +927,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                 data = img.getdata()
                 new_data = []
                 for item in data:
-                    if item[0] == 255 and item[1] == 0 and item[2] == 255:
+                    # --- FIX 2: SMART CHROMA KEY (Usuwanie różowego osadu na brzegach) ---
+                    if item[0] > 200 and item[1] < 55 and item[2] > 200:
                         new_data.append((255, 255, 255, 0))
                     else:
                         new_data.append(item)
@@ -1075,11 +1083,13 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                     self, source_node, target_node, direction=e_data.get("direction", "last"),
                     color=st.EDGE_COLORS.get(get_key(st.EDGE_COLORS, e_data.get("color"), "Szary (Domyślny)")),
                     dashed=e_data.get("dashed", False),
-                    waypoints=new_waypoints, line_width=e_data.get("line_width", 2), label=e_data.get("label", "")
+                    waypoints=new_waypoints, line_width=e_data.get("line_width", 2), label=e_data.get("label", ""),
+                    transparent_label=e_data.get("transparent_label", False),
+                    label_bg_color=e_data.get("label_bg_color", None),
+                    font_family=e_data.get("font_family", "Helvetica"),
+                    font_size=e_data.get("font_size", 11),
+                    font_color=e_data.get("font_color", "#ffcc00")
                 )
-                edge.set_selected(True)
-                self.edges[edge.id] = edge
-                new_edges.append(edge)
 
         self.clipboard = {"nodes": [n.to_dict() for n in new_nodes], "edges": [e.to_dict() for e in new_edges]}
         self.draw_group_selection()
@@ -1599,8 +1609,8 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
         self.mark_unsaved()
         self.push_to_history()
 
-    def apply_edge_edit(self, edge, new_direction, new_color, new_dashed, line_width, label):
-        edge.update_properties(new_direction, new_color, new_dashed, line_width, label)
+    def apply_edge_edit(self, edge, new_direction, new_color, new_dashed, line_width, label, transparent_label, label_bg_color, font_family, font_size, font_color):
+        edge.update_properties(new_direction, new_color, new_dashed, line_width, label, transparent_label, label_bg_color, font_family, font_size, font_color)
         self.mark_unsaved()
         self.push_to_history()
 
@@ -1643,7 +1653,12 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                     self, source_node, target_node,
                     edge_id=ed["id"], direction=ed.get("direction", "last"),
                     color=ed.get("color", "#888888"), dashed=ed.get("dashed", False),
-                    waypoints=ed.get("waypoints", []), line_width=ed.get("line_width", 2), label=ed.get("label", "")
+                    waypoints=ed.get("waypoints", []), line_width=ed.get("line_width", 2), label=ed.get("label", ""),
+                    transparent_label=ed.get("transparent_label", False),
+                    label_bg_color=ed.get("label_bg_color", None),
+                    font_family=ed.get("font_family", "Helvetica"),
+                    font_size=ed.get("font_size", 11),
+                    font_color=ed.get("font_color", "#ffcc00")
                 )
                 self.edges[edge.id] = edge
 
