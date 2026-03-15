@@ -166,7 +166,23 @@ class NodeEditDialog(ctk.CTkToplevel):
                 pass
         self.cal.bind("<<DateEntrySelected>>", self.update_live)
         self.cal.pack(side="right")
+        og_drop2 = self.cal.drop_down
 
+        def safe_drop2():
+            og_drop2()
+            if self.cal._top_cal:
+                self.cal._top_cal.lift()
+                self.cal._top_cal.attributes('-topmost', True)
+
+        self.cal.drop_down = safe_drop2
+
+        def smart_focus2(event):
+            w_type = str(type(event.widget)).lower()
+            if "entry" in w_type or "text" in w_type:
+                return
+            self.focus_set()
+
+        self.bind("<Button-1>", smart_focus2)
         self.show_days_var = ctk.BooleanVar(value=getattr(node, "show_days_left", False))
         ctk.CTkCheckBox(self.f_proj, text=tr("show_days_left"), variable=self.show_days_var,
                         command=self.update_live).pack(anchor="w", pady=(2, 5), padx=15)
@@ -578,7 +594,26 @@ class TileFormDialog(ctk.CTkToplevel):
         self.cal = DateEntry(self, width=12, background='darkblue', foreground='white', borderwidth=2,
                              date_pattern='y-mm-dd', state="disabled")
         self.cal.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+        # --- SMART FIX DLA KALENDARZA I PÓL TEKSTOWYCH ---
+        og_drop = self.cal.drop_down
 
+        def safe_drop():
+            og_drop()
+            if self.cal._top_cal:
+                self.cal._top_cal.lift()
+                self.cal._top_cal.attributes('-topmost', True)
+
+        self.cal.drop_down = safe_drop
+
+        def smart_focus(event):
+            # Jeśli kliknięto w pole tekstowe (Entry/Text), nie zabieraj ostrości!
+            w_type = str(type(event.widget)).lower()
+            if "entry" in w_type or "text" in w_type:
+                return
+            self.focus_set()
+
+        self.bind("<Button-1>", smart_focus)
+        # -------------------------------------------------
         self.workflow_var = ctk.BooleanVar(value=False)
         self.workflow_cb = ctk.CTkCheckBox(self, text=tr("enable_wf"), variable=self.workflow_var)
         self.workflow_cb.grid(row=3, column=0, columnspan=2, padx=10, pady=5)

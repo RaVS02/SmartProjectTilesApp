@@ -1379,6 +1379,43 @@ class WorkflowCanvasFrame(ctk.CTkFrame):
                                                              arrowshape=(16, 20, 6))
                     self.canvas.tag_raise(self.temp_line)
 
+        elif mode == "delete":
+            item_deleted = False
+            clicked_node = None
+            clicked_edge = None
+
+            for it in items:
+                tags = self.canvas.gettags(it)
+                if "node" in tags and len(tags) > 1:
+                    clicked_node = self.nodes.get(tags[1])
+                    break
+                elif "edge" in tags and len(tags) > 1:
+                    clicked_edge = self.edges.get(tags[1])
+                    break
+                elif "edge_label" in tags and len(tags) > 1:
+                    clicked_edge = self.edges.get(tags[1])
+                    break
+
+            if clicked_node:
+                clicked_node.destroy()
+                del self.nodes[clicked_node.id]
+                edges_to_del = [e_id for e_id, e in self.edges.items() if
+                                e.source.id == clicked_node.id or e.target.id == clicked_node.id]
+                for e_id in edges_to_del:
+                    self.edges[e_id].destroy()
+                    del self.edges[e_id]
+                item_deleted = True
+
+            elif clicked_edge:
+                clicked_edge.destroy()
+                del self.edges[clicked_edge.id]
+                item_deleted = True
+
+            if item_deleted:
+                self.draw_group_selection()
+                self.mark_unsaved()
+                self.push_to_history()
+
     def on_drag(self, event):
         mode = self.current_mode.get()
         if mode == "pan":
