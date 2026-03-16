@@ -5,6 +5,7 @@ from tkcalendar import DateEntry
 from datetime import datetime
 from models import ProjectTileModel
 from translations import tr, rev_tr
+from tkinter import colorchooser
 
 
 def snap(val): return round(val / 20) * 20
@@ -14,6 +15,94 @@ def get_key(d, val, default):
     for k, v in d.items():
         if v == val: return k
     return default
+
+
+# ==========================================
+# UNIWERSALNY WIDŻET WYBORU KOLORU Z PICKEREM
+# ==========================================
+def create_color_picker(parent, label_text, color_dict, current_color, update_cb):
+    if isinstance(current_color, list):
+        current_color = tuple(current_color)
+    frame = ctk.CTkFrame(parent, fg_color="transparent")
+    if label_text:
+        ctk.CTkLabel(frame, text=label_text).pack(side="left")
+
+    preview = ctk.CTkFrame(frame, width=20, height=20, corner_radius=3, border_width=1, border_color="gray")
+    btn_picker = ctk.CTkButton(frame, text="🎨", width=28, fg_color="#444", hover_color="#666")
+    var = ctk.StringVar()
+
+    display_dict = {tr(k): v for k, v in color_dict.items()}
+    opts = list(display_dict.keys())
+
+    current_display = None
+    for disp_k, v in display_dict.items():
+        if v == current_color or (isinstance(v, tuple) and current_color in v) or (
+                isinstance(current_color, tuple) and v == current_color):
+            current_display = disp_k
+            break
+
+    if current_display:
+        var.set(current_display)
+    else:
+        if current_color:
+            disp_val = current_color[0] if isinstance(current_color, tuple) else current_color
+            opts.append(disp_val)
+            display_dict[disp_val] = current_color
+            var.set(disp_val)
+        else:
+            var.set(opts[0])
+
+    menu = ctk.CTkOptionMenu(frame, values=opts, variable=var, width=130)
+
+    def apply_preview(val):
+        disp_c = val[1] if isinstance(val, tuple) else val
+        if not disp_c:
+            preview.configure(fg_color="transparent")
+        else:
+            preview.configure(fg_color=disp_c)
+
+    apply_preview(display_dict.get(var.get()))
+
+    def on_change(choice):
+        val = display_dict.get(choice, choice)
+        apply_preview(val)
+        if update_cb: update_cb()
+
+    menu.configure(command=on_change)
+
+    def pick_custom():
+        # ZMIANA: Dodano parent=frame.winfo_toplevel() aby okienko wyboru koloru nie psuło pamięci
+        color_code = colorchooser.askcolor(
+            parent=frame.winfo_toplevel(),
+            title=tr("custom_color") if "custom_color" in getattr(st, "translations", {}) else "Wybierz kolor"
+        )[1]
+
+        if color_code:
+            curr_vals = menu.cget("values")
+            # ZMIANA: Rzutowanie na listę (list(curr_vals)) dla pełnego bezpieczeństwa
+            if color_code not in curr_vals:
+                menu.configure(values=list(curr_vals) + [color_code])
+
+            display_dict[color_code] = color_code
+            color_dict[color_code] = color_code
+            var.set(color_code)
+            on_change(color_code)
+
+    btn_picker.configure(command=pick_custom)
+
+    btn_picker.pack(side="right", padx=(5, 0))
+    preview.pack(side="right", padx=(5, 0))
+    menu.pack(side="right")
+
+    def get_val():
+        choice = var.get()
+        return display_dict.get(choice, choice)
+
+    def set_state(state):
+        menu.configure(state=state)
+        btn_picker.configure(state=state)
+
+    return frame, get_val, set_state
 
 
 class ExportDialog(ctk.CTkToplevel):
@@ -26,7 +115,6 @@ class ExportDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(self, text=tr("file_format"), font=("Helvetica", 12, "bold")).pack(pady=(15, 5))
         self.format_var = ctk.StringVar(value="PNG")
-        # ZMIANA: Dodajemy format EPS!
         ctk.CTkOptionMenu(self, values=["PNG", "JPG", "EPS (Wektor)"], variable=self.format_var).pack(pady=5)
 
         self.grid_var = ctk.BooleanVar(value=False)
@@ -54,7 +142,6 @@ class ExportDialog(ctk.CTkToplevel):
             self.trans_cb.configure(state="disabled")
             self.grid_var.set(True)
         elif val == "EPS (Wektor)":
-            # EPS naturalnie radzi sobie ze świetną jakością, blokujemy zbędne opcje rastrowe
             self.trans_var.set(False)
             self.trans_cb.configure(state="disabled")
             self.grid_var.set(False)
@@ -68,7 +155,6 @@ class ExportDialog(ctk.CTkToplevel):
         show_grid = self.grid_var.get()
         show_minimap = self.minimap_var.get()
         is_transparent = self.trans_var.get()
-
         self.destroy()
         self.master.after(250, lambda: self.on_export_callback(fmt, show_grid, show_minimap, is_transparent))
 
@@ -125,7 +211,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(self.f_shape, values=[tr(k) for k in st.NODE_SHAPES.keys()], variable=self.shape_var).pack(
             fill="x", pady=2)
 
-        # --- ZMIANA: PRZEORGANIZOWANA ZAWARTOŚĆ ---
         self.f_text = ctk.CTkFrame(self.scroll)
         self.f_text.pack(fill="x", pady=5, ipadx=10, ipady=10)
         ctk.CTkLabel(self.f_text, text=tr("content"), font=("Helvetica", 12, "bold")).pack(anchor="w")
@@ -176,6 +261,7 @@ class NodeEditDialog(ctk.CTkToplevel):
                 pass
         self.cal.bind("<<DateEntrySelected>>", self.update_live)
         self.cal.pack(side="right")
+
         og_drop2 = self.cal.drop_down
 
         def safe_drop2():
@@ -183,15 +269,16 @@ class NodeEditDialog(ctk.CTkToplevel):
             if self.cal._top_cal:
                 self.cal._top_cal.lift()
                 self.cal._top_cal.attributes('-topmost', True)
+
         self.cal.drop_down = safe_drop2
 
         def smart_focus2(event):
             w_type = str(type(event.widget)).lower()
-            if "entry" in w_type or "text" in w_type:
-                return
+            if "entry" in w_type or "text" in w_type: return
             self.focus_set()
 
         self.bind("<Button-1>", smart_focus2)
+
         self.show_days_var = ctk.BooleanVar(value=getattr(node, "show_days_left", False))
         ctk.CTkCheckBox(self.f_proj, text=tr("show_days_left"), variable=self.show_days_var,
                         command=self.update_live).pack(anchor="w", pady=(2, 5), padx=15)
@@ -200,29 +287,16 @@ class NodeEditDialog(ctk.CTkToplevel):
         ctk.CTkLabel(self.f_color, text=tr("colors_header"), font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
                                                                                                   pady=(10, 0))
 
-        bg_frame = ctk.CTkFrame(self.f_color, fg_color="transparent")
-        bg_frame.pack(fill="x", pady=2, padx=10)
-        ctk.CTkLabel(bg_frame, text=tr("bg_color")).pack(side="left")
-        current_bg_key = get_key(st.NODE_BG_COLORS, node.color, list(st.NODE_BG_COLORS.keys())[0])
-        init_bg_color = st.NODE_BG_COLORS.get(current_bg_key) or "#1e1e1e"
-        self.bg_preview = ctk.CTkFrame(bg_frame, width=20, height=20, corner_radius=3, fg_color=init_bg_color)
-        self.bg_preview.pack(side="right", padx=(5, 0))
-        self.bg_var = ctk.StringVar(value=tr(current_bg_key))
-        ctk.CTkOptionMenu(bg_frame, values=[tr(k) for k in st.NODE_BG_COLORS.keys()], variable=self.bg_var, width=130,
-                          command=self.update_bg_preview).pack(side="right")
+        # --- ZMIANA: Zastosowanie Custom Pickera Kolorów ---
+        self.bg_frame, self.get_bg_col, _ = create_color_picker(self.f_color, tr("bg_color"), st.NODE_BG_COLORS,
+                                                                self.node.color, self.update_live)
+        self.bg_frame.pack(fill="x", pady=2, padx=10)
 
-        border_frame = ctk.CTkFrame(self.f_color, fg_color="transparent")
-        border_frame.pack(fill="x", pady=5, padx=10)
-        ctk.CTkLabel(border_frame, text=tr("border_color")).pack(side="left")
-        current_border_key = get_key(st.NODE_BORDER_COLORS, getattr(node, "border_color", None),
-                                     list(st.NODE_BORDER_COLORS.keys())[0])
-        init_border_color = st.NODE_BORDER_COLORS.get(current_border_key) or "#666666"
-        self.border_preview = ctk.CTkFrame(border_frame, width=20, height=20, corner_radius=3,
-                                           fg_color=init_border_color)
-        self.border_preview.pack(side="right", padx=(5, 0))
-        self.border_var = ctk.StringVar(value=tr(current_border_key))
-        ctk.CTkOptionMenu(border_frame, values=[tr(k) for k in st.NODE_BORDER_COLORS.keys()], variable=self.border_var,
-                          width=130, command=self.update_border_preview).pack(side="right")
+        self.border_frame, self.get_border_col, _ = create_color_picker(self.f_color, tr("border_color"),
+                                                                        st.NODE_BORDER_COLORS,
+                                                                        getattr(self.node, "border_color", None),
+                                                                        self.update_live)
+        self.border_frame.pack(fill="x", pady=5, padx=10)
 
         border_w_frame = ctk.CTkFrame(self.f_color, fg_color="transparent")
         border_w_frame.pack(fill="x", pady=5, padx=10)
@@ -232,7 +306,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         self.border_width_slider.set(getattr(node, "border_width", 2))
         self.border_width_slider.pack(side="right", padx=(5, 0))
 
-        # --- ZMIANA: ZAKŁADKI TYPOGRAFII (TABVIEW) ---
         self.f_typo = ctk.CTkFrame(self.scroll)
         self.f_typo.pack(fill="x", pady=5, ipadx=5, ipady=5)
         ctk.CTkLabel(self.f_typo, text=tr("typography_tabs"), font=("Helvetica", 12, "bold")).pack(anchor="w", padx=5)
@@ -245,52 +318,40 @@ class NodeEditDialog(ctk.CTkToplevel):
         tab_t = self.typo_tabs.add(tr("tab_tags"))
         tab_d = self.typo_tabs.add(tr("tab_date"))
 
-        def build_typo_tab(parent, fam, siz, col, preview_attr_name, update_cb_name):
+        def build_typo_tab(parent, fam, siz, col, update_cb):
             fam_var = ctk.StringVar(value=fam)
             siz_var = ctk.StringVar(value=str(siz))
-            col_key = get_key(st.CANVAS_FONT_COLORS, col, list(st.CANVAS_FONT_COLORS.keys())[0])
-            col_var = ctk.StringVar(value=tr(col_key))
 
             r1 = ctk.CTkFrame(parent, fg_color="transparent")
             r1.pack(fill="x", pady=2)
             ctk.CTkLabel(r1, text=tr("font")).pack(side="left")
-            ctk.CTkOptionMenu(r1, values=st.CANVAS_FONT_FAMILIES, variable=fam_var, width=110,
-                              command=self.update_live).pack(side="right")
+            ctk.CTkOptionMenu(r1, values=st.CANVAS_FONT_FAMILIES, variable=fam_var, width=110, command=update_cb).pack(
+                side="right")
 
             r2 = ctk.CTkFrame(parent, fg_color="transparent")
             r2.pack(fill="x", pady=2)
             ctk.CTkLabel(r2, text=tr("font_size")).pack(side="left")
-            ctk.CTkOptionMenu(r2, values=st.CANVAS_FONT_SIZES, variable=siz_var, width=110,
-                              command=self.update_live).pack(side="right")
+            ctk.CTkOptionMenu(r2, values=st.CANVAS_FONT_SIZES, variable=siz_var, width=110, command=update_cb).pack(
+                side="right")
 
-            r3 = ctk.CTkFrame(parent, fg_color="transparent")
-            r3.pack(fill="x", pady=2)
-            ctk.CTkLabel(r3, text=tr("text_color")).pack(side="left")
-            init_c = st.CANVAS_FONT_COLORS.get(col_key) or "#ffffff"
-            preview = ctk.CTkFrame(r3, width=20, height=20, corner_radius=3, fg_color=init_c)
-            preview.pack(side="right", padx=(5, 0))
-            setattr(self, preview_attr_name, preview)
+            # Picker Koloru
+            c_frame, get_col, _ = create_color_picker(parent, tr("text_color"), st.CANVAS_FONT_COLORS, col, update_cb)
+            c_frame.pack(fill="x", pady=2)
 
-            ctk.CTkOptionMenu(r3, values=[tr(k) for k in st.CANVAS_FONT_COLORS.keys()], variable=col_var, width=110,
-                              command=getattr(self, update_cb_name)).pack(side="right")
-            return fam_var, siz_var, col_var
+            return fam_var, siz_var, get_col
 
         self.h_fam, self.h_siz, self.h_col = build_typo_tab(tab_h, getattr(node, "header_font_family", "Helvetica"),
                                                             getattr(node, "header_font_size", 10),
-                                                            getattr(node, "header_font_color", None), "h_preview",
-                                                            "update_h_preview")
+                                                            getattr(node, "header_font_color", None), self.update_live)
         self.m_fam, self.m_siz, self.m_col = build_typo_tab(tab_m, getattr(node, "font_family", "Helvetica"),
                                                             getattr(node, "font_size", 12),
-                                                            getattr(node, "font_color", None), "m_preview",
-                                                            "update_m_preview")
+                                                            getattr(node, "font_color", None), self.update_live)
         self.t_fam, self.t_siz, self.t_col = build_typo_tab(tab_t, getattr(node, "tags_font_family", "Helvetica"),
                                                             getattr(node, "tags_font_size", 10),
-                                                            getattr(node, "tags_font_color", None), "t_preview",
-                                                            "update_t_preview")
+                                                            getattr(node, "tags_font_color", None), self.update_live)
         self.d_fam, self.d_siz, self.d_col = build_typo_tab(tab_d, getattr(node, "date_font_family", "Helvetica"),
                                                             getattr(node, "date_font_size", 10),
-                                                            getattr(node, "date_font_color", None), "d_preview",
-                                                            "update_d_preview")
+                                                            getattr(node, "date_font_color", None), self.update_live)
 
         f_dim = ctk.CTkFrame(self.scroll)
         f_dim.pack(fill="x", pady=5, ipadx=10, ipady=10)
@@ -341,38 +402,6 @@ class NodeEditDialog(ctk.CTkToplevel):
         self.cal.configure(state="normal" if self.deadline_var.get() else "disabled")
         self.update_live()
 
-    def update_bg_preview(self, choice):
-        actual_key = rev_tr(choice, list(st.NODE_BG_COLORS.keys()))
-        color = st.NODE_BG_COLORS.get(actual_key)
-        self.bg_preview.configure(fg_color=color if color else "#1e1e1e")
-        self.update_live()
-
-    def update_border_preview(self, choice):
-        actual_key = rev_tr(choice, list(st.NODE_BORDER_COLORS.keys()))
-        color = st.NODE_BORDER_COLORS.get(actual_key)
-        self.border_preview.configure(fg_color=color if color else "#666666")
-        self.update_live()
-
-    def update_h_preview(self, choice):
-        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
-        self.h_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
-        self.update_live()
-
-    def update_m_preview(self, choice):
-        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
-        self.m_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
-        self.update_live()
-
-    def update_t_preview(self, choice):
-        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
-        self.t_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
-        self.update_live()
-
-    def update_d_preview(self, choice):
-        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
-        self.d_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
-        self.update_live()
-
     def _get_internal_priority(self):
         selected_display = self.priority_var.get()
         for k, v in st.PRIORITY_LABELS.items():
@@ -409,33 +438,30 @@ class NodeEditDialog(ctk.CTkToplevel):
         except ValueError:
             d_siz = 10
 
-        act_bg = rev_tr(self.bg_var.get(), list(st.NODE_BG_COLORS.keys()))
-        act_border = rev_tr(self.border_var.get(), list(st.NODE_BORDER_COLORS.keys()))
-
-        act_m_col = rev_tr(self.m_col.get(), list(st.CANVAS_FONT_COLORS.keys()))
-        act_h_col = rev_tr(self.h_col.get(), list(st.CANVAS_FONT_COLORS.keys()))
-        act_t_col = rev_tr(self.t_col.get(), list(st.CANVAS_FONT_COLORS.keys()))
-        act_d_col = rev_tr(self.d_col.get(), list(st.CANVAS_FONT_COLORS.keys()))
+        # Wczytujemy kolory bezpośrednio z getterów pickera!
+        act_bg = self.get_bg_col()
+        act_border = self.get_border_col()
+        act_m_col = self.m_col()
+        act_h_col = self.h_col()
+        act_t_col = self.t_col()
+        act_d_col = self.d_col()
 
         return {
             "text": self.text_box.get("0.0", "end").strip(),
             "header": self.header_var.get(),
             "shape": shape,
             "node_type": ntype,
-            "color": st.NODE_BG_COLORS.get(act_bg),
-            "border_color": st.NODE_BORDER_COLORS.get(act_border),
+            "color": act_bg,
+            "border_color": act_border,
             "border_width": int(self.border_width_slider.get()),
             "width": new_w, "height": new_h,
             "priority": self._get_internal_priority(), "deadline": deadline, "tags": self.tags_var.get(),
             "show_days_left": self.show_days_var.get(),
 
-            "font_family": self.m_fam.get(), "font_size": m_siz, "font_color": st.CANVAS_FONT_COLORS.get(act_m_col),
-            "header_font_family": self.h_fam.get(), "header_font_size": h_siz,
-            "header_font_color": st.CANVAS_FONT_COLORS.get(act_h_col),
-            "tags_font_family": self.t_fam.get(), "tags_font_size": t_siz,
-            "tags_font_color": st.CANVAS_FONT_COLORS.get(act_t_col),
-            "date_font_family": self.d_fam.get(), "date_font_size": d_siz,
-            "date_font_color": st.CANVAS_FONT_COLORS.get(act_d_col)
+            "font_family": self.m_fam.get(), "font_size": m_siz, "font_color": act_m_col,
+            "header_font_family": self.h_fam.get(), "header_font_size": h_siz, "header_font_color": act_h_col,
+            "tags_font_family": self.t_fam.get(), "tags_font_size": t_siz, "tags_font_color": act_t_col,
+            "date_font_family": self.d_fam.get(), "date_font_size": d_siz, "date_font_color": act_d_col
         }
 
     def update_live(self, *args):
@@ -495,7 +521,6 @@ class EdgeEditDialog(ctk.CTkToplevel):
         self.scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.scroll.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
-        # --- SEKCJA 1: TEKST ---
         ctk.CTkLabel(self.scroll, text="Etykieta (Tekst na linii):", font=("Helvetica", 12, "bold")).pack(pady=(5, 2),
                                                                                                           anchor="w",
                                                                                                           padx=10)
@@ -503,7 +528,6 @@ class EdgeEditDialog(ctk.CTkToplevel):
         self.label_var.trace_add("write", self.update_live)
         ctk.CTkEntry(self.scroll, textvariable=self.label_var, width=300).pack(pady=5, padx=10)
 
-        # --- SEKCJA 2: TYPOGRAFIA ---
         self.f_typo = ctk.CTkFrame(self.scroll)
         self.f_typo.pack(fill="x", pady=10, ipadx=5, ipady=5)
         ctk.CTkLabel(self.f_typo, text="Typografia", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
@@ -523,20 +547,12 @@ class EdgeEditDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(r2, values=st.CANVAS_FONT_SIZES, variable=self.font_siz_var, width=130,
                           command=self.update_live).pack(side="right")
 
-        r3 = ctk.CTkFrame(self.f_typo, fg_color="transparent")
-        r3.pack(fill="x", pady=2, padx=10)
-        ctk.CTkLabel(r3, text="Kolor:").pack(side="left")
+        # Color picker czcionki
+        self.c_frame2, self.get_font_color, _ = create_color_picker(self.f_typo, "Kolor:", st.CANVAS_FONT_COLORS,
+                                                                    getattr(edge, "font_color", "#ffcc00"),
+                                                                    self.update_live)
+        self.c_frame2.pack(fill="x", pady=2, padx=10)
 
-        init_font_col = getattr(edge, "font_color", "#ffcc00")
-        font_col_key = get_key(st.CANVAS_FONT_COLORS, init_font_col, list(st.CANVAS_FONT_COLORS.keys())[0])
-        self.font_col_var = ctk.StringVar(value=tr(font_col_key))
-        self.font_col_preview = ctk.CTkFrame(r3, width=20, height=20, corner_radius=3,
-                                             fg_color=st.CANVAS_FONT_COLORS.get(font_col_key) or "#ffcc00")
-        self.font_col_preview.pack(side="right", padx=(5, 0))
-        ctk.CTkOptionMenu(r3, values=[tr(k) for k in st.CANVAS_FONT_COLORS.keys()], variable=self.font_col_var,
-                          width=130, command=self.update_font_col_preview).pack(side="right")
-
-        # --- SEKCJA 3: TŁO ETYKIETY ---
         self.f_bg = ctk.CTkFrame(self.scroll)
         self.f_bg.pack(fill="x", pady=5, ipadx=5, ipady=5)
         ctk.CTkLabel(self.f_bg, text="Tło Etykiety", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
@@ -547,27 +563,14 @@ class EdgeEditDialog(ctk.CTkToplevel):
                                         command=self.on_trans_change)
         self.trans_cb.pack(pady=(5, 10), padx=10, anchor="w")
 
-        self.r4 = ctk.CTkFrame(self.f_bg, fg_color="transparent")
-        self.r4.pack(fill="x", pady=2, padx=10)
-        self.bg_lbl = ctk.CTkLabel(self.r4, text="Kolor Tła:")
-        self.bg_lbl.pack(side="left")
+        local_bg = {"Domyślny (Tło Płótna)": None}
+        local_bg.update(st.NODE_BG_COLORS)
+        self.c_frame3, self.get_label_bg, self.set_label_bg_state = create_color_picker(self.f_bg, "Kolor Tła:",
+                                                                                        local_bg,
+                                                                                        getattr(edge, "label_bg_color",
+                                                                                                None), self.update_live)
+        self.c_frame3.pack(fill="x", pady=2, padx=10)
 
-        init_bg_col = getattr(edge, "label_bg_color", None)
-        bg_col_key = get_key(st.NODE_BG_COLORS, init_bg_col,
-                             list(st.NODE_BG_COLORS.keys())[0]) if init_bg_col else "Domyślny (Tło Płótna)"
-
-        self.bg_col_var = ctk.StringVar(value=tr(bg_col_key))
-        self.bg_col_preview = ctk.CTkFrame(self.r4, width=20, height=20, corner_radius=3,
-                                           fg_color=st.NODE_BG_COLORS.get(bg_col_key) or "#1e1e1e")
-        self.bg_col_preview.pack(side="right", padx=(5, 0))
-
-        # Specjalna opcja: "Domyślny (Tło Płótna)" aby automatycznie dobierało kolor tła roboczego
-        opts = ["Domyślny (Tło Płótna)"] + [tr(k) for k in st.NODE_BG_COLORS.keys()]
-        self.bg_col_menu = ctk.CTkOptionMenu(self.r4, values=opts, variable=self.bg_col_var, width=130,
-                                             command=self.update_bg_col_preview)
-        self.bg_col_menu.pack(side="right")
-
-        # --- SEKCJA 4: STYL LINII ---
         self.f_line = ctk.CTkFrame(self.scroll)
         self.f_line.pack(fill="x", pady=10, ipadx=5, ipady=5)
         ctk.CTkLabel(self.f_line, text="Styl Linii", font=("Helvetica", 12, "bold")).pack(anchor="w", padx=10,
@@ -581,16 +584,10 @@ class EdgeEditDialog(ctk.CTkToplevel):
         ctk.CTkOptionMenu(l1, values=[tr(k) for k in st.EDGE_DIRECTIONS.keys()], variable=self.dir_var, width=130,
                           command=self.update_live).pack(side="right")
 
-        l2 = ctk.CTkFrame(self.f_line, fg_color="transparent")
-        l2.pack(fill="x", pady=5, padx=10)
-        ctk.CTkLabel(l2, text="Kolor linii:").pack(side="left")
-        current_ecolor_key = get_key(st.EDGE_COLORS, edge.color, list(st.EDGE_COLORS.keys())[0])
-        init_ecolor = st.EDGE_COLORS.get(current_ecolor_key) or "#888888"
-        self.edge_color_preview = ctk.CTkFrame(l2, width=20, height=20, corner_radius=3, fg_color=init_ecolor)
-        self.edge_color_preview.pack(side="right", padx=(5, 0))
-        self.color_var = ctk.StringVar(value=tr(current_ecolor_key))
-        ctk.CTkOptionMenu(l2, values=[tr(k) for k in st.EDGE_COLORS.keys()], variable=self.color_var, width=130,
-                          command=self.update_edge_color_preview).pack(side="right")
+        # Color picker linii
+        self.c_frame1, self.get_edge_color, _ = create_color_picker(self.f_line, "Kolor linii:", st.EDGE_COLORS,
+                                                                    edge.color, self.update_live)
+        self.c_frame1.pack(fill="x", pady=5, padx=10)
 
         l3 = ctk.CTkFrame(self.f_line, fg_color="transparent")
         l3.pack(fill="x", pady=10, padx=10)
@@ -607,59 +604,26 @@ class EdgeEditDialog(ctk.CTkToplevel):
 
     def on_trans_change(self, *args):
         if self.trans_label_var.get():
-            self.bg_col_menu.configure(state="disabled")
-            self.bg_lbl.configure(text_color="gray")
+            self.set_label_bg_state("disabled")
         else:
-            self.bg_col_menu.configure(state="normal")
-            self.bg_lbl.configure(text_color=["#000000", "#FFFFFF"])
-        self.update_live()
-
-    def update_font_col_preview(self, choice):
-        act = rev_tr(choice, list(st.CANVAS_FONT_COLORS.keys()))
-        self.font_col_preview.configure(fg_color=st.CANVAS_FONT_COLORS.get(act) or "#ffffff")
-        self.update_live()
-
-    def update_bg_col_preview(self, choice):
-        if choice == "Domyślny (Tło Płótna)":
-            self.bg_col_preview.configure(fg_color=self.master.canvas.cget("bg"))
-        else:
-            act = rev_tr(choice, list(st.NODE_BG_COLORS.keys()))
-            self.bg_col_preview.configure(fg_color=st.NODE_BG_COLORS.get(act) or "#1e1e1e")
-        self.update_live()
-
-    def update_edge_color_preview(self, choice):
-        actual_key = rev_tr(choice, list(st.EDGE_COLORS.keys()))
-        color = st.EDGE_COLORS.get(actual_key)
-        self.edge_color_preview.configure(fg_color=color if color else "#888888")
+            self.set_label_bg_state("normal")
         self.update_live()
 
     def get_current_data(self):
         act_dir = rev_tr(self.dir_var.get(), list(st.EDGE_DIRECTIONS.keys()))
-        act_col = rev_tr(self.color_var.get(), list(st.EDGE_COLORS.keys()))
-
         new_dir = st.EDGE_DIRECTIONS.get(act_dir)
-        new_color = st.EDGE_COLORS.get(act_col)
         new_dashed = self.dashed_var.get()
         new_w = int(self.width_slider.get())
         new_label = self.label_var.get()
         is_trans_label = self.trans_label_var.get()
-
-        act_font_col = rev_tr(self.font_col_var.get(), list(st.CANVAS_FONT_COLORS.keys()))
-        font_col = st.CANVAS_FONT_COLORS.get(act_font_col)
-
-        if self.bg_col_var.get() == "Domyślny (Tło Płótna)":
-            bg_col = None
-        else:
-            act_bg_col = rev_tr(self.bg_col_var.get(), list(st.NODE_BG_COLORS.keys()))
-            bg_col = st.NODE_BG_COLORS.get(act_bg_col)
 
         try:
             f_size = int(self.font_siz_var.get())
         except ValueError:
             f_size = 11
 
-        return (new_dir, new_color, new_dashed, new_w, new_label, is_trans_label,
-                bg_col, self.font_fam_var.get(), f_size, font_col)
+        return (new_dir, self.get_edge_color(), new_dashed, new_w, new_label, is_trans_label,
+                self.get_label_bg(), self.font_fam_var.get(), f_size, self.get_font_color())
 
     def update_live(self, *args):
         if not hasattr(self, "width_slider"): return
@@ -678,10 +642,12 @@ class EdgeEditDialog(ctk.CTkToplevel):
         )
         if hasattr(self.master, "update_minimap"): self.master.update_minimap()
         self.destroy()
+
     def save_data(self):
         data = self.get_current_data()
         self.on_save_callback(self.edge, *data)
         self.destroy()
+
 
 class TileFormDialog(ctk.CTkToplevel):
     def __init__(self, master, on_save_callback, existing_tile=None, **kwargs):
@@ -709,7 +675,6 @@ class TileFormDialog(ctk.CTkToplevel):
         self.title_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
         ctk.CTkLabel(self, text=tr("priority")).grid(row=1, column=0, padx=10, pady=10, sticky="e")
-
         self.prio_keys = list(st.PRIORITY_RANK.keys())
         self.priority_var = ctk.StringVar(value=tr(st.PRIORITY_LABELS["medium"]))
         self.priority_menu = ctk.CTkOptionMenu(self, values=[tr(st.PRIORITY_LABELS[k]) for k in self.prio_keys],
@@ -724,7 +689,6 @@ class TileFormDialog(ctk.CTkToplevel):
         self.cal = DateEntry(self, width=12, background='darkblue', foreground='white', borderwidth=2,
                              date_pattern='y-mm-dd', state="disabled")
         self.cal.grid(row=2, column=1, padx=10, pady=10, sticky="w")
-        # --- SMART FIX DLA KALENDARZA I PÓL TEKSTOWYCH ---
         og_drop = self.cal.drop_down
 
         def safe_drop():
@@ -736,14 +700,12 @@ class TileFormDialog(ctk.CTkToplevel):
         self.cal.drop_down = safe_drop
 
         def smart_focus(event):
-            # Jeśli kliknięto w pole tekstowe (Entry/Text), nie zabieraj ostrości!
             w_type = str(type(event.widget)).lower()
-            if "entry" in w_type or "text" in w_type:
-                return
+            if "entry" in w_type or "text" in w_type: return
             self.focus_set()
 
         self.bind("<Button-1>", smart_focus)
-        # -------------------------------------------------
+
         self.workflow_var = ctk.BooleanVar(value=False)
         self.workflow_cb = ctk.CTkCheckBox(self, text=tr("enable_wf"), variable=self.workflow_var)
         self.workflow_cb.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
@@ -760,20 +722,11 @@ class TileFormDialog(ctk.CTkToplevel):
         self.todos_box = ctk.CTkTextbox(self, height=100)
         self.todos_box.grid(row=6, column=1, padx=10, pady=10, sticky="ew")
 
-        ctk.CTkLabel(self, text=tr("bg_color_label")).grid(row=7, column=0, padx=10, pady=10, sticky="e")
-        color_frame = ctk.CTkFrame(self, fg_color="transparent")
-        color_frame.grid(row=7, column=1, padx=10, pady=10, sticky="ew")
-        color_frame.grid_columnconfigure(0, weight=1)
-
-        self.color_var = ctk.StringVar(value=tr("Domyślny"))
-        self.color_menu = ctk.CTkOptionMenu(color_frame, values=[tr(k) for k in st.CUSTOM_TILE_COLORS.keys()],
-                                            variable=self.color_var, command=self.update_color_preview)
-        self.color_menu.grid(row=0, column=0, sticky="ew", padx=(0, 10))
-
-        self.color_preview = ctk.CTkFrame(color_frame, width=30, height=30, corner_radius=5, border_width=1,
-                                          border_color="gray")
-        self.color_preview.grid(row=0, column=1)
-        self.update_color_preview(tr("Domyślny"))
+        # --- ZMIANA: Implementacja Pickera Koloru dla Kafelków ---
+        init_color = self.existing_tile.color if self.existing_tile else None
+        self.color_frame, self.get_tile_color, _ = create_color_picker(self, tr("bg_color_label"),
+                                                                       st.CUSTOM_TILE_COLORS, init_color, None)
+        self.color_frame.grid(row=7, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
 
         btn_frame = ctk.CTkFrame(self, fg_color="transparent")
         btn_frame.grid(row=8, column=0, columnspan=2, pady=20)
@@ -796,21 +749,6 @@ class TileFormDialog(ctk.CTkToplevel):
             todos = self.existing_tile.content.get("todos", [])
             if todos: self.todos_box.insert("0.0", "\n".join([t["task"] for t in todos]))
 
-            if self.existing_tile.color:
-                for name, val in st.CUSTOM_TILE_COLORS.items():
-                    if val and tuple(val) == tuple(self.existing_tile.color):
-                        self.color_var.set(tr(name))
-                        self.update_color_preview(tr(name))
-                        break
-
-    def update_color_preview(self, selected_color_display):
-        actual_key = rev_tr(selected_color_display, list(st.CUSTOM_TILE_COLORS.keys()))
-        color_val = st.CUSTOM_TILE_COLORS.get(actual_key)
-        if color_val is None:
-            self.color_preview.configure(fg_color=("white", "gray15"))
-        else:
-            self.color_preview.configure(fg_color=color_val)
-
     def toggle_deadline(self):
         self.cal.configure(state="normal" if self.deadline_var.get() else "disabled")
 
@@ -826,9 +764,7 @@ class TileFormDialog(ctk.CTkToplevel):
         todos_list = [{"task": line.strip(), "is_done": False} for line in todos_raw.split("\n") if line.strip()]
         has_workflow = self.workflow_var.get()
 
-        act_col_key = rev_tr(self.color_var.get(), list(st.CUSTOM_TILE_COLORS.keys()))
-        selected_color = st.CUSTOM_TILE_COLORS.get(act_col_key)
-
+        selected_color = self.get_tile_color()
         content = {"text": desc_text if desc_text else None, "todos": todos_list}
 
         if self.existing_tile:
@@ -846,7 +782,6 @@ class TileFormDialog(ctk.CTkToplevel):
                 deadline=deadline, content=content, color=selected_color, has_workflow=has_workflow
             )
             self.on_save_callback(new_tile)
-
         self.destroy()
 
 
@@ -878,8 +813,6 @@ class HelpDialog(ctk.CTkToplevel):
         textbox.insert("0.0", text)
         textbox.configure(state="disabled")
 
-        # ZMIANA: Dyskretny podpis twórcy ikony pod polem tekstowym
         credits_text = "Application icon created by Those Icons, and downloaded from ICON-ICONS"
         ctk.CTkLabel(self, text=credits_text, font=("Helvetica", 10), text_color="gray").pack(pady=(0, 5))
-
         ctk.CTkButton(self, text=tr("btn_understand"), command=self.destroy, fg_color="#1f538d").pack(pady=(5, 15))

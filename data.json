@@ -3,14 +3,14 @@
         "mode": "size_full",
         "columns": "1",
         "theme": "theme_dark",
-        "color_style": "color_border",
-        "sort_by": "sort_priority",
+        "color_style": "color_bg",
+        "sort_by": "sort_deadline",
         "sort_order": "sort_asc",
         "filter_status": "filter_all",
-        "filter_wf": "filter_all",
+        "filter_wf": "filter_with_wf",
         "filter_no_deadline": false,
         "filter_overdue": false,
-        "filter_tasks": "filter_with_tasks",
+        "filter_tasks": "filter_all",
         "language": "en",
         "main_view": "view_board"
     },
@@ -311,8 +311,8 @@
                         "header": "",
                         "type": "project",
                         "shape": "rect",
-                        "color": null,
-                        "border_color": null,
+                        "color": "#000080",
+                        "border_color": "#666666",
                         "border_width": 2,
                         "width": 160,
                         "height": 100,
@@ -474,7 +474,7 @@
             ],
             "priority": "high",
             "deadline": "2026-11-04",
-            "color": null,
+            "color": "#008040",
             "content": {
                 "text": "Interaktywna oś czasu powstawania naszej aplikacji. Kliknij 'Workflow', aby zobaczyć pełną drogę od prostego skryptu do Enterprise App!lllbnbn",
                 "todos": [
@@ -516,6 +516,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": null,
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -525,7 +526,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "46138188-56f2-4746-9374-e865ed950be6",
@@ -537,6 +547,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 100,
                         "priority": "medium",
@@ -546,7 +557,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "884c25c7-2f43-428e-abba-39e446130c10",
@@ -556,8 +576,9 @@
                         "header": "",
                         "type": "block",
                         "shape": "rect",
-                        "color": null,
-                        "border_color": null,
+                        "color": "#171717",
+                        "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -567,7 +588,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "4a45df56-6d70-479b-abc0-f3f7e5ff7e90",
@@ -579,6 +609,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": null,
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -588,7 +619,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "d88f28a8-91c2-4ef3-9e44-ea3c414acdca",
@@ -600,6 +640,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 100,
                         "priority": "medium",
@@ -609,7 +650,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "3321273d-d338-4019-9a28-84bcab52a319",
@@ -621,6 +671,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": null,
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -630,7 +681,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "88321555-2b8d-4dea-91e1-8958770d9aa4",
@@ -642,6 +702,7 @@
                         "shape": "rect",
                         "color": "#2b2b2b",
                         "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 100,
                         "priority": "medium",
@@ -651,7 +712,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "9f6a7b66-694c-4b65-9347-4fd3819c937f",
@@ -663,6 +733,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": null,
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -672,7 +743,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "457c2f81-9ff3-4e33-8e3c-c994733b93ee",
@@ -684,6 +764,7 @@
                         "shape": "parallelogram",
                         "color": null,
                         "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 100,
                         "priority": "medium",
@@ -693,7 +774,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     },
                     {
                         "id": "6048c6e4-6c70-4c82-98cc-9b8f2c382fa0",
@@ -705,6 +795,7 @@
                         "shape": "rect",
                         "color": null,
                         "border_color": "#666666",
+                        "border_width": 2,
                         "width": 160,
                         "height": 80,
                         "priority": "medium",
@@ -714,7 +805,16 @@
                         "group_id": null,
                         "font_family": "Helvetica",
                         "font_size": 12,
-                        "font_color": null
+                        "font_color": null,
+                        "header_font_family": "Helvetica",
+                        "header_font_size": 10,
+                        "header_font_color": null,
+                        "tags_font_family": "Helvetica",
+                        "tags_font_size": 10,
+                        "tags_font_color": null,
+                        "date_font_family": "Helvetica",
+                        "date_font_size": 10,
+                        "date_font_color": null
                     }
                 ],
                 "edges": [
@@ -727,7 +827,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 5,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "d31b0bb5-ef2b-48ba-8664-7f97ca9e034c",
@@ -738,7 +843,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "c30ac419-a582-4a2f-9dd3-9c9f793b843d",
@@ -749,7 +859,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "8d0664cf-b127-415f-beff-75825849cca2",
@@ -760,7 +875,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "8e9f1985-4f66-4a33-a670-3650f08616e8",
@@ -771,7 +891,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 5,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "ff133ace-840d-4fa0-a5dd-25450b848d66",
@@ -782,7 +907,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "90dbd8d6-7aba-4855-a7ac-1dc48a7bb2f9",
@@ -793,7 +923,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "940ec7fc-be39-48e4-a3c4-c4d56fc3391d",
@@ -804,7 +939,12 @@
                         "dashed": false,
                         "waypoints": [],
                         "line_width": 2,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     },
                     {
                         "id": "e4ac54bc-f9e4-4b79-b771-dfc4266d0a6e",
@@ -824,7 +964,12 @@
                             ]
                         ],
                         "line_width": 4,
-                        "label": ""
+                        "label": "",
+                        "transparent_label": false,
+                        "label_bg_color": null,
+                        "font_family": "Helvetica",
+                        "font_size": 11,
+                        "font_color": "#ffcc00"
                     }
                 ],
                 "canvas_bg": "#1a1a1a"
@@ -837,12 +982,21 @@
             "priority": "very-high",
             "deadline": "2026-03-02",
             "color": [
-                "#fafae6",
-                "#3a3a1a"
+                "#e6f0fa",
+                "#1a2a3a"
             ],
             "content": {
                 "text": "Serwer nie odpowiada po aktualizacji! (Zadanie przypięte, po terminie - najwyższa waga).",
-                "todos": []
+                "todos": [
+                    {
+                        "task": "-",
+                        "is_done": false
+                    },
+                    {
+                        "task": "-",
+                        "is_done": false
+                    }
+                ]
             }
         },
         {
@@ -893,10 +1047,7 @@
             ],
             "priority": "high",
             "deadline": "2026-03-11",
-            "color": [
-                "#b3e0ff",
-                "#004d80"
-            ],
+            "color": "#000080",
             "content": {
                 "text": "Termin na dzisiaj! Ustawiona wysoka waga czasowa.",
                 "todos": []
@@ -1250,10 +1401,7 @@
             ],
             "priority": "high",
             "deadline": "2026-03-14",
-            "color": [
-                "#d9b3ff",
-                "#4d0080"
-            ],
+            "color": "#808040",
             "content": {
                 "text": null,
                 "todos": [

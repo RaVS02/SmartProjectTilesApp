@@ -248,13 +248,16 @@ class CanvasNode:
             max_h_chars = h_chars_per_line * max_h_lines
             header_display = self.header[:max_h_chars - 3] + "..." if len(self.header) > max_h_chars else self.header
 
-            header_y = y1 + base_h_size + (6 * z)
-            temp_id = self.canvas.create_text(sx, header_y, text=header_display, font=header_font_style, width=wrap_w)
+            # ZMIANA: Zawsze rysuj od "n" (z góry) z bezpiecznym, równym marginesem 8*z
+            header_y = y1 + (8 * z)
+            temp_id = self.canvas.create_text(sx, header_y, text=header_display, font=header_font_style, width=wrap_w,
+                                              anchor="n")
             bbox = self.canvas.bbox(temp_id)
             if bbox:
-                header_height = bbox[3] - bbox[1] + (12 * z)
+                # ZMIANA: Wysokość to bbox + 16*z (8 od góry, 8 od dołu, aby była perfekcyjna symetria)
+                header_height = bbox[3] - bbox[1] + (16 * z)
             else:
-                header_height = base_h_size * 2 + (12 * z)
+                header_height = base_h_size * 2 + (16 * z)
             self.canvas.delete(temp_id)
 
             header_height = min(header_height, sh * 0.6)
@@ -278,8 +281,9 @@ class CanvasNode:
             else:
                 header_color = "#555555" if bg in ["#ffffff", "#e6c280", "#888888"] else "#dddddd"
 
+            # ZMIANA: Dodano anchor="n", by tekst zaczynał się równo i nie dotykał ramki
             self.header_id = self.canvas.create_text(sx, header_y, text=header_display, fill=header_color,
-                                                     font=header_font_style, width=wrap_w, justify="center",
+                                                     font=header_font_style, width=wrap_w, justify="center", anchor="n",
                                                      tags=("node", self.id))
 
         self.outline_id = self.canvas.create_polygon(flat_pts, fill="", outline=outline_color, width=l_width,
