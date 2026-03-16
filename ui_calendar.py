@@ -225,19 +225,7 @@ class CalendarView(ctk.CTkFrame):
                 else:
                     cell_frame.configure(fg_color=("gray90", "gray10"))
 
-        if self._drop_zone_timer: self.after_cancel(self._drop_zone_timer)
-        self._drop_zone_timer = self.after(100, self._calculate_all_drop_zones)
 
-    def _calculate_all_drop_zones(self):
-        self.update_idletasks()
-        self.drop_zones.clear()
-        for name, widget in self._pending_drop_zones.items():
-            if widget.winfo_exists():
-                x1 = widget.winfo_rootx()
-                y1 = widget.winfo_rooty()
-                x2 = x1 + widget.winfo_width()
-                y2 = y1 + widget.winfo_height()
-                self.drop_zones[name] = (x1, y1, x2, y2)
 
     def on_drag_start(self, minitile, event):
         self.dragged_tile_model = minitile.tile_model
@@ -246,8 +234,9 @@ class CalendarView(ctk.CTkFrame):
         self.drag_ghost.attributes('-alpha', 0.8)
         self.drag_ghost.attributes('-topmost', True)
 
-        bg_col = self.dragged_tile_model.color[1] if isinstance(self.dragged_tile_model.color, tuple) else (
-                    self.dragged_tile_model.color or "#1e1e1e")
+        # ZMIANA 1: Obsługa (tuple, list) aby naprawić błąd z JSON!
+        c = self.dragged_tile_model.color
+        bg_col = c[1] if isinstance(c, (tuple, list)) else (c or "#1e1e1e")
         if self.dragged_tile_model.is_completed: bg_col = "#1a1a1a"
 
         ghost_frame = tk.Frame(self.drag_ghost, bg=bg_col, bd=2, relief="ridge")
@@ -267,10 +256,16 @@ class CalendarView(ctk.CTkFrame):
         rx, ry = event.x_root, event.y_root
         target_zone = None
 
-        for name, (x1, y1, x2, y2) in self.drop_zones.items():
-            if x1 <= rx <= x2 and y1 <= ry <= y2:
-                target_zone = name
-                break
+        # ZMIANA 2: Dynamiczne liczenie współrzędnych! Idealnie odporne na zmianę rozmiaru okna.
+        for name, widget in self._pending_drop_zones.items():
+            if widget.winfo_exists():
+                x1 = widget.winfo_rootx()
+                y1 = widget.winfo_rooty()
+                x2 = x1 + widget.winfo_width()
+                y2 = y1 + widget.winfo_height()
+                if x1 <= rx <= x2 and y1 <= ry <= y2:
+                    target_zone = name
+                    break
 
         if target_zone:
             if target_zone == "UNSCHEDULED":
@@ -280,4 +275,5 @@ class CalendarView(ctk.CTkFrame):
             self.manager.save_to_file()
             self.on_update_callback()
             self.refresh_data()
+
         self.dragged_tile_model = None

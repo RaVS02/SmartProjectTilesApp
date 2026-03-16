@@ -1,9 +1,9 @@
 {
     "preferences": {
         "mode": "size_full",
-        "columns": "1",
+        "columns": "3",
         "theme": "theme_dark",
-        "color_style": "color_bg",
+        "color_style": "color_border",
         "sort_by": "sort_deadline",
         "sort_order": "sort_asc",
         "filter_status": "filter_all",
@@ -11,8 +11,8 @@
         "filter_no_deadline": false,
         "filter_overdue": false,
         "filter_tasks": "filter_all",
-        "language": "en",
-        "main_view": "view_board"
+        "language": "pl",
+        "main_view": "view_calendar"
     },
     "project_tiles": [
         {
@@ -980,7 +980,7 @@
                 "devops"
             ],
             "priority": "very-high",
-            "deadline": "2026-03-02",
+            "deadline": "2026-03-03",
             "color": [
                 "#e6f0fa",
                 "#1a2a3a"
@@ -1401,7 +1401,10 @@
             ],
             "priority": "high",
             "deadline": "2026-03-14",
-            "color": "#808040",
+            "color": [
+                "#ffe6b3",
+                "#806600"
+            ],
             "content": {
                 "text": null,
                 "todos": [
@@ -1526,7 +1529,7 @@
                 "dom"
             ],
             "priority": "low",
-            "deadline": "2026-03-04",
+            "deadline": "2026-03-27",
             "color": null,
             "content": {
                 "text": "Zrobione.",
@@ -1548,7 +1551,7 @@
                 "biuro"
             ],
             "priority": "low",
-            "deadline": null,
+            "deadline": "2026-04-01",
             "color": null,
             "content": {
                 "text": "Poczekać na promocję.",
@@ -1792,7 +1795,7 @@
                 "youtube"
             ],
             "priority": "medium",
-            "deadline": "2026-03-16",
+            "deadline": "2026-03-02",
             "color": [
                 "#e6f0fa",
                 "#1a2a3a"
@@ -1990,7 +1993,7 @@
                 "design"
             ],
             "priority": "high",
-            "deadline": "2026-04-10",
+            "deadline": "2026-04-16",
             "color": [
                 "#e6f0fa",
                 "#1a2a3a"
